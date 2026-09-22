@@ -1,158 +1,123 @@
-# Лабораторная работа 10
+# valkey-lite
 
-萝卜，萝卜
+A small in-memory key-value store written in C++23, implementing a
+subset of the [Valkey](https://valkey.io/) / Redis command set.
 
-## Задача
+> Status: **work in progress**. Storage core, comand dispatcher in progress. See [ROADMAP](docs/Roadmap.md) for future plans.
 
-Вам предстоит разработать простую локальную key-value in-memory базу данных, встраиваемую в память вашего процесса. Взаимодействие с БД должно осуществляться с помощью текстовых команд, синтаксис которых является подмножеством команд [valkey.io](https://valkey.io/).
+## What it is
 
-Программа читает команды из стандартного ввода (одна команда на строку), выполняет их и выводит результат в стандартный вывод. Формат вывода должен соответствовать описанию каждой команды.
+- **In-memory, embeddable.** Single process, no external dependencies.
+- **Valkey-compatible subset.** String, List, Set and Geospatial commands,
+  plus a few generic ones. See the full list below.
+- **C++23.** Uses `std::variant`, `std::visit`, Concepts, `std::expected`,
+  `std::shared_mutex` (planned), and other modern facilities.
+- **Planned:** multi-threaded execution with a TCP/RESP frontend.
+  See [ROADMAP](docs/Roadmap.md).
 
-## Поддерживаемые типы данных и команды
+## ## Requirements
+
+- C++23-capable compiler (GCC 13+, Clang 17+, MSVC 19.36+).
+- CMake 3.20+.
+- (Optional) `-fsanitize=thread` support for concurrency testing.
+
+## Run
+
+Interactive REPL (commands from stdin, results to stdout):
+
+    ./build/valkey-lite
+
+With a memory limit (suffixes `b`, `kb`, `mb`, `gb`):
+
+    ./build/valkey-lite --maxmemory 64mb
+
+Exit with `EXIT` or `Ctrl-D`.
+
+## Example session
+
+    > SET greeting "hello"
+    OK
+    > APPEND greeting ", world"
+    (integer) 12
+    > GET greeting
+    "hello, world"
+    > EXPIRE greeting 60
+    (integer) 1
+    > TTL greeting
+    (integer) 60
+
+    > RPUSH queue a b c
+    (integer) 3
+    > LRANGE queue 0 -1
+    1) "a"
+    2) "b"
+    3) "c"
+    > LPOP queue
+    "a"
+
+    > SADD tags cpp redis
+    (integer) 2
+    > SMEMBERS tags
+    1) "cpp"
+    2) "redis"
+
+    > GEOADD cities 30.31 59.94 "spb"
+    (integer) 1
+    > GEODIST cities spb spb
+    "0.0000"
+
+## Supported commands
+
+Legend: `[x]` implemented · `[ ]` planned · `[-]` out of scope
 
 ### String
 
-Строки — базовый тип. Каждый ключ хранит одно строковое значение.
-
-| Команда | Синтаксис | Описание |
-|---------|-----------|----------|
-| `SET` | `SET key value` | Установить значение ключа |
-| `GET` | `GET key` | Получить значение ключа |
-| `STRLEN` | `STRLEN key` | Вернуть длину строкового значения |
-| `APPEND` | `APPEND key value` | Добавить строку к существующему значению |
-| `EXPIRE` | `EXPIRE key seconds` | Установить TTL ключа в секундах |
-| `TTL` | `TTL key` | Вернуть оставшееся время жизни ключа в секундах |
-
-Документация: [valkey.io/commands/#string](https://valkey.io/commands/?group=string)
-
----
+- [ ] `SET`, `GET`, `STRLEN`, `APPEND`, `EXPIRE`, `TTL`
 
 ### List
 
-Список — упорядоченная последовательность строк. Элементы можно добавлять и извлекать с обоих концов.
-
-| Команда | Синтаксис | Описание |
-|---------|-----------|----------|
-| `LPUSH` | `LPUSH key value [value ...]` | Добавить элементы в начало списка |
-| `RPUSH` | `RPUSH key value [value ...]` | Добавить элементы в конец списка |
-| `LPOP` | `LPOP key [count]` | Извлечь и вернуть элементы из начала списка |
-| `RPOP` | `RPOP key [count]` | Извлечь и вернуть элементы из конца списка |
-| `LLEN` | `LLEN key` | Вернуть длину списка |
-| `LRANGE` | `LRANGE key start stop` | Вернуть подсписок по индексам (поддерживаются отрицательные индексы) |
-| `LINDEX` | `LINDEX key index` | Вернуть элемент по индексу |
-| `LSET` | `LSET key index value` | Установить значение элемента по индексу |
-| `LINSERT` | `LINSERT key BEFORE\|AFTER pivot value` | Вставить элемент до или после опорного значения |
-
-Документация: [valkey.io/commands/#list](https://valkey.io/commands/?group=list)
-
----
+- [ ] `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN`, `LRANGE`, `LINDEX`, `LSET`, `LINSERT`
 
 ### Set
 
-Множество — неупорядоченная коллекция уникальных строк.
+- [ ] `SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`, `SCARD`, `SUNION`, `SINTER`, `SDIFF`, `SMOVE`
 
-| Команда | Синтаксис | Описание |
-|---------|-----------|----------|
-| `SADD` | `SADD key member [member ...]` | Добавить элементы в множество |
-| `SREM` | `SREM key member [member ...]` | Удалить элементы из множества |
-| `SISMEMBER` | `SISMEMBER key member` | Проверить принадлежность элемента множеству |
-| `SMEMBERS` | `SMEMBERS key` | Вернуть все элементы множества |
-| `SCARD` | `SCARD key` | Вернуть количество элементов |
-| `SUNION` | `SUNION key [key ...]` | Объединение нескольких множеств |
-| `SINTER` | `SINTER key [key ...]` | Пересечение нескольких множеств |
-| `SDIFF` | `SDIFF key [key ...]` | Разность множеств (элементы первого, отсутствующие в остальных) |
-| `SMOVE` | `SMOVE source destination member` | Переместить элемент из одного множества в другое |
+### Geo
 
-Документация: [valkey.io/commands/#set](https://valkey.io/commands/?group=set)
+- [ ] `GEOADD`, `GEOPOS`, `GEODIST`, `GEOSEARCH`, `GEOSEARCHSTORE`
 
----
+### Generic
 
-### Geospatial index
+- [ ] `TYPE`, `DEL`, `EXISTS`, `KEYS`, `FLUSHDB`, `CONFIG SET/GET`, `DBSIZE`, `MEMORY USAGE`
 
-Геопространственный индекс — хранит координаты точек (долгота, широта) и позволяет выполнять запросы по расстоянию.
+### Control
 
-| Команда | Синтаксис | Описание |
-|---------|-----------|----------|
-| `GEOADD` | `GEOADD key longitude latitude member [longitude latitude member ...]` | Добавить точки с координатами |
-| `GEOPOS` | `GEOPOS key member [member ...]` | Получить координаты точек |
-| `GEODIST` | `GEODIST key member1 member2 [unit]` | Вычислить расстояние между двумя точками. Единицы: `m`, `km`, `mi`, `ft` |
-| `GEOSEARCH` | `GEOSEARCH key FROMLONLAT lon lat BYRADIUS radius unit [ASC\|DESC] [COUNT count]` | Найти точки в заданном радиусе от координаты |
-| `GEOSEARCHSTORE` | `GEOSEARCHSTORE dest source FROMLONLAT lon lat BYRADIUS radius unit [ASC\|DESC] [COUNT count]` | То же, но сохранить результат в новый ключ |
+- [ ] `EXIT` / EOF
 
-> Для вычисления расстояния используйте формулу [Хаверсина](https://en.wikipedia.org/wiki/Haversine_formula). Радиус Земли принять равным 6372.8 км.
+> Update the checkboxes as commands land. Do not let this list drift
+> from reality — a stale status is worse than no status.
 
-Документация: [valkey.io/commands/#geo](https://valkey.io/commands/?group=geo)
+## Design
 
----
+See [ARCHITECTURE](docs/ARCHITECTURE.md) for details.
 
-### Общие команды
+## Roadmap
 
-| Команда | Синтаксис | Описание |
-|---------|-----------|----------|
-| `TYPE` | `TYPE key` | Вернуть тип значения: `string`, `list`, `set`, `zset`, `hash`, `none` |
-| `DEL` | `DEL key [key ...]` | Удалить ключи любого типа |
-| `EXISTS` | `EXISTS key [key ...]` | Проверить существование ключей любого типа |
-| `KEYS` | `KEYS pattern` | Перечислить ключи по паттерну |
-| `FLUSHDB` | `FLUSHDB` | Удалить все ключи |
-| `CONFIG SET` | `CONFIG SET maxmemory <bytes>` | Установить лимит памяти в байтах (0 — без лимита) |
-| `CONFIG GET` | `CONFIG GET maxmemory` | Получить текущий лимит памяти |
-| `DBSIZE` | `DBSIZE` | Вернуть количество ключей в хранилище |
-| `MEMORY USAGE` | `MEMORY USAGE key` | Вернуть оценку потребляемой ключом памяти в байтах |
+See [ROADMAP](docs/ROADMAP.md). Short version:
 
----
+1. **Core.** Single-threaded storage + REPL. *(current)*
+2. **Multi-threaded core.** `std::shared_mutex`, `shared_ptr<const Entry>`,
+   TSan-clean stress tests.
+3. **Network frontend.** TCP + RESP, thread-per-connection.
+4. **Polish.** Benchmarks, Docker image, CI, documentation.
 
-## Требования к реализации
+## Documentation
 
-- Должна быть разработана библиотека и набор тестов к ней.
-- Отдельный исполняемый файл для интерактивного режима. Команды читаются из `stdin`, результаты выводятся в `stdout`.
-- Неизвестная команда или неверное число аргументов — вывести сообщение об ошибке в `stderr` и продолжить работу.
-- Ключи **чувствительны к регистру**, названия команд — **нет** (`SET` и `set` эквивалентны).
-- Команда `EXIT` или конец ввода завершают программу.
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — layers, responsibilities, data flow.
+- [DECISIONS](docs/DECISIONS.md) — design decisions (ADR-lite).
+- [CONTRACTS](docs/CONTRACTS.md) — class invariants and contracts.
+- [ROADMAP](docs/ROADMAP.md) — plan and progress.
 
-### Ограничение памяти
+## License
 
-Исполняемый файл принимает необязательный аргумент командной строки:
-
-```
-./valkey [--maxmemory <bytes>]
-```
-
-Поддерживаются суффиксы: `b`, `kb`, `mb`, `gb` (например, `--maxmemory 64mb`). По умолчанию лимит не установлен.
-
-Лимит также можно изменить во время работы командой `CONFIG SET maxmemory`.
-
-Оценка потребляемой памяти должна учитывать размер ключа, значения и служебных структур. Точность оценки не принципиальна, но она должна расти при добавлении данных и уменьшаться при удалении.
-
-Когда суммарный объём данных достигает лимита, любая команда, увеличивающая объём хранилища, должна вернуть ошибку:
-
-```
-(error) OOM command not allowed when used memory > 'maxmemory'
-```
-
-Документация: [valkey.io/topics/memory-optimization](https://valkey.io/topics/memory-optimization/)
-
-## Ограничения
-
-Запрещены все сторонние библиотеки. Использование STL разрешено полностью.
-
-## Оценивание
-
-Оцениваться будут все состовляющие работы:
-1. Корректная поддержка всех функциональных требований
-2. Архитектура решения: разделение ответственности, расширяемость, отсутствие дублирования
-3. Покрытие библиотеки тестами
-
-## Теормин
-
-1. std::tuple
-2. Overload Pattern
-3. std::visit + std::variant
-4. Метафункции в стандратной библиотеке
-5. SFINAE
-6. Concepts
-
-## Deadline
-
-До 21.05.26 23:59 коэффициент 1.0, после 0.75
-
-
+SMTH open
