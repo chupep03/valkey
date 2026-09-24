@@ -15,8 +15,8 @@ public:
         std::string value(ctx.GetArgumentAsStr(1));
 
         Storage::Entry entry{Storage::StringType{std::move(value)}};
-        ctx.GetStorage().Set(key, std::move(entry));
-        ctx.GetOut().Ok();
+        ctx.Storage().Set(key, std::move(entry));
+        ctx.Out().Ok();
     }
 };
 

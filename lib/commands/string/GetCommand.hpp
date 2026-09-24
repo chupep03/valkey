@@ -14,15 +14,15 @@ public:
         ctx.RequireArgs(1);
         std::string key(ctx.GetArgumentAsStr(0));
 
-        auto entry = ctx.GetStorage().Get(key);
+        auto entry = ctx.Storage().Get(key);
         if (!entry) {
-            ctx.GetOut().Nil();
+            ctx.Out().Nil();
             return;
         }
         auto* s = std::get_if<Storage::StringType>(&entry->value);
         if (!s) throw CommandException(WrongTypeError{});
 
-        ctx.GetOut().Bulk(*s);
+        ctx.Out().Bulk(*s);
     }
 };
 
