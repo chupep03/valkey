@@ -1,12 +1,13 @@
-//#include <CommandReg.h>
+#pragma once
+
 #include "Context.hpp"
 
 namespace Commands {
-    class ICommand {
-    private:
-        //Context cont;
 
-    public:
-        virtual void Execute(Context& cnt /*, StorageEngine& stor*/) {}
-    };
-} // namespace Command 
+class ICommand {
+public:
+    virtual ~ICommand() = default;
+    virtual void Execute(Context& ctx) = 0;
+};
+
+} // namespace Commands
