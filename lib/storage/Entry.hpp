@@ -22,6 +22,8 @@ public:
         memory_usage = CalculateSelfSize();
     }
 
+    size_t GetMemoryUsage() const {return memory_usage;}
+
     bool IsExpired() const {
         if (!exp_time.has_value()) return false;
         return std::chrono::system_clock::now() >= exp_time.value();
