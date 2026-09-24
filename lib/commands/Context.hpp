@@ -1,35 +1,64 @@
+#pragma once 
+
 #include "../storage/MemoryManager.hpp"
 #include "../storage/StorageEngine.hpp"
 #include "CommandException.hpp"
 #include "IResponse.hpp"
 
 #include <vector>
+#include <charconv>
 #include <string>
 
 namespace Commands {
 
 class Context {
 public:
-    using Args = std::vector<std::string>;
+    using ArgsType = std::vector<std::string>;
     using SE_ref = Storage::StorageEngine&;
     using MM_ref = Storage::MemoryManager&;
 
 private:
-    Args args_;
     std::string cmd_name_;
+    ArgsType args_;
     SE_ref storage_;
     MM_ref mm_;
     IResponse& out_;
 
 public:
-    Context(std::string cmd_name, Args args, SE_ref storage, MM_ref mm, IResponse& out) :
+    Context(std::string cmd_name, ArgsType args, SE_ref storage, MM_ref mm, IResponse& out) :
         cmd_name_(cmd_name), args_(args), storage_(storage), mm_(mm), out_(out) {}
 
-    Args& Args() {return args_;}
+    ArgsType& Args() {return args_;}
     size_t GetArgsCount() {return args_.size();}
-    std::string_view GetArgumentAsStr(size_t i) const {} // to do
-    long long int GetArgumentAsLLInt(size_t i) const {} // to do
-    double GetArgumentAsDouble(size_t i) const {} // to do
+
+    std::string_view GetArgumentAsStr(std::size_t i) const {
+        if (i >= args_.size()) {
+            throw CommandException(WrongTypeError{});
+        }
+        return args_[i];
+    }
+
+    long long GetArgumentAsLLInt(std::size_t i) const {
+        auto sv = GetArgumentAsStr(i);
+        long long value = 0;
+        auto [ptr, ec] = std::from_chars(
+            sv.data(), sv.data() + sv.size(), value);
+        if (ec != std::errc{} || ptr != sv.data() + sv.size()) {
+            throw CommandException(WrongTypeError{});;
+        }
+        return value;
+    }
+
+    double GetArgumentAsDouble(std::size_t i) const {
+        auto sv = GetArgumentAsStr(i);
+        double value = 0.0;
+        auto [ptr, ec] = std::from_chars(
+            sv.data(), sv.data() + sv.size(), value);
+        if (ec != std::errc{} || ptr != sv.data() + sv.size()) {
+            throw CommandException(WrongTypeError{});;
+        }
+        return value;
+    }
 
     void RequireArgs(size_t n) {if (args_.size() != n) throw CommandException(ArgsError{}, "RequireArgs");}
     void RequireMinArgs(size_t n) const {if (args_.size() < n) throw CommandException(ArgsError{}, "RequireMinArgs");}

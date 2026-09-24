@@ -1,3 +1,5 @@
+#pragma once 
+
 #include "../commands/IResponse.hpp"
 
 #include <iostream>

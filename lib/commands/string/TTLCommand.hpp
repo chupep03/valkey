@@ -11,7 +11,7 @@ namespace Commands {
 //   -2 : key does not exist
 //   -1 : key exists but has no TTL
 //   >=0: seconds remaining
-class TTLCommnd : public ICommand {
+class TTLCommand : public ICommand {
 public:
     void Execute(Context& ctx) override {
         ctx.RequireArgs(1);
