@@ -5,8 +5,8 @@ subset of the [Valkey](https://valkey.io/) / Redis command set.
 
 ## What it is
 
-- **In-memory, embeddable.** Single process, no external dependencies.
-- **Valkey-compatible subset.** String, List, Set, Geo, and generic
+- **In-memory** Single process, no external dependencies.
+- **Valkey-compatible subset.** String, List, Set, Geo, and Generic
   commands. See the list below.
 - **C++23.** Uses `std::variant`, `std::visit`, the Overload pattern,
   `std::from_chars`, `std::shared_ptr<const Entry>`
@@ -15,8 +15,8 @@ subset of the [Valkey](https://valkey.io/) / Redis command set.
 
 ## Requirements
 
-- C++23 compiler (GCC 13+, Clang 17+, MSVC 19.36+)
-- CMake 3.20+
+- C++23 compiler (`GCC 13+`, `Clang 17+`)
+- `CMake 3.20+`
 
 ## Build
 
@@ -28,7 +28,7 @@ subset of the [Valkey](https://valkey.io/) / Redis command set.
     ./build/valkey
     ./build/valkey --maxmemory 64mb
 
-Exit with `EXIT` or `Ctrl-D`.
+Exit with `EXIT` command.
 
 ## Example session
 
@@ -62,6 +62,7 @@ Exit with `EXIT` or `Ctrl-D`.
     (integer) 1
     > GEODIST cities spb spb
     "0.0000"
+    > exit
 
 ## Supported commands
 
@@ -94,7 +95,7 @@ Exit with `EXIT` or `Ctrl-D`.
       parser/                     — Tokenizer
       application/                — Args, Repl, ResponseFormatter
     docs/                         — README, ARCHITECTURE, DECISIONS, ROADMAP, CONTRACTS
-    tests/                        — unit tests (planned)
+    tests/                        — gtests
 
 ## Documentation
 

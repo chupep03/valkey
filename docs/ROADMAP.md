@@ -13,11 +13,12 @@ Goal: a working single-threaded REPL, all commands implemented, basic tests.
 - [x] List commands (9)
 - [x] Set commands (9)
 - [x] Generic commands (8)
-- [x] Geo commands (5)
-- [ ] Unit tests for `MemoryManager`, `StorageEngine`, `Entry`
-- [ ] Unit tests for each command group
-- [ ] Manual smoke test of all commands
+- [x] Geo commands (6)
+- [x] Unit tests for `MemoryManager`, `StorageEngine`, `Entry`
+- [x] Unit tests for each command group
+- [x] Manual smoke test of all commands
 - [ ] Update README command checklist
+- [ ] CI/CD
 
 ## Stage 2 — Multi-threaded core
 
@@ -47,11 +48,3 @@ Goal: TCP server with a RESP protocol.
 - [ ] Benchmark (100k SET/GET)
 - [ ] Screenshot in README
 - [ ] `LICENSE`, `.gitignore`
-
-## Not planned
-
-- Persistence (RDB/AOF)
-- Replication
-- Cluster mode
-- Transactions (`MULTI`/`EXEC`)
-- Pub/Sub
