@@ -17,8 +17,8 @@ Goal: a working single-threaded REPL, all commands implemented, basic tests.
 - [x] Unit tests for `MemoryManager`, `StorageEngine`, `Entry`
 - [x] Unit tests for each command group
 - [x] Manual smoke test of all commands
-- [ ] Update README command checklist
-- [ ] CI/CD
+- [x] Update README command checklist
+- [x] CI/CD
 
 ## Stage 2 — Multi-threaded core
 
