@@ -114,10 +114,10 @@ TEST(SetCommands, SMoveBetweenSets) {
 TEST(SetCommands, WrongType) {
     Fixture f;
     f.Run("SET", {"s", "x"});
-    EXPECT_THROW(f.Run("SADD", {"s", "y"}), WrongTypeError);
+    EXPECT_THROW(f.Run("SADD", {"s", "y"}), WrongTypeError); // +
 
     f.Run("SADD", {"real", "m"});
-    EXPECT_THROW(f.Run("SADD", {"real", "m"}), WrongTypeError);
+    //EXPECT_THROW(f.Run("SADD", {"real", "m"}), WrongTypeError);
     f.out.Clear();
     f.Run("SADD", {"real", "m"});
     EXPECT_EQ(f.out.Last().integer, 0);
