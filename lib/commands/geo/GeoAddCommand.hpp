@@ -20,7 +20,7 @@ public:
         ctx.RequireMinArgs(4);
         const std::size_t rest = ctx.GetArgsCount() - 1;
         if (rest % 3 != 0) {
-            throw CommandException(SyntaxError{});
+            throw SyntaxError();
         }
 
         std::string key(ctx.GetArgumentAsStr(0));
@@ -29,7 +29,7 @@ public:
         Storage::GeoType points;
         if (entry) {
             auto* existing = std::get_if<Storage::GeoType>(&entry->value);
-            if (!existing) throw CommandException(WrongTypeError{});
+            if (!existing) throw WrongTypeError();
             points = *existing;
         }
 

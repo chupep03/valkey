@@ -25,7 +25,7 @@ public:
             auto entry = ctx.Storage().Get(key);
             if (!entry) continue;
             auto* existing = std::get_if<Storage::SetType>(&entry->value);
-            if (!existing) throw CommandException(WrongTypeError{});
+            if (!existing) throw WrongTypeError();
             result.insert(existing->begin(), existing->end());
         }
 

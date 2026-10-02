@@ -24,10 +24,10 @@ public:
 
         if (subcommand == "SET") {
             if (ctx.GetArgsCount() != 3) {
-                throw CommandException(OtherError{}, "wrong number of arguments for 'config|set' command");
+                throw CommandException("wrong number of arguments for 'config|set' command");
             }
             if (param != "maxmemory") {
-                throw CommandException(OtherError{}, "Unknown option or number of arguments for CONFIG SET - '" + param + "'");
+                throw CommandException("Unknown option or number of arguments for CONFIG SET - '" + param + "'");
             }
 
             std::string value(ctx.GetArgumentAsStr(2));
@@ -36,12 +36,12 @@ public:
             try {
                 bytes = Storage::MemoryManager::ParseSizeToBytes(value);
             } catch (const std::exception& e) {
-                throw CommandException(OtherError{}, std::string("bad maxmemory value: ") + e.what());
+                throw CommandException(std::string("bad maxmemory value: ") + e.what());
             }
             try {
                 ctx.Memory().SetLimit(bytes);
             } catch (const std::invalid_argument& e) {
-                throw CommandException(OtherError{}, e.what());
+                throw CommandException(e.what());
             }
             ctx.Out().Ok();
             return;
@@ -49,16 +49,16 @@ public:
 
         if (subcommand == "GET") {
             if (ctx.GetArgsCount() != 2) {
-                throw CommandException(OtherError{}, "wrong number of arguments for CONFIG GET command");
+                throw CommandException("wrong number of arguments for CONFIG GET command");
             }
             if (param != "maxmemory") {
-                throw CommandException(OtherError{}, "Unknown option or number of arguments for CONFIG GET - '" + param + "'");
+                throw CommandException("Unknown option or number of arguments for CONFIG GET - '" + param + "'");
             }
             ctx.Out().Array({"maxmemory", std::to_string(ctx.Memory().GetLimit())});
             return;
         }
 
-        throw CommandException(OtherError{}, "unknown CONFIG subcommand or wrong number of arguments");
+        throw CommandException("unknown CONFIG subcommand or wrong number of arguments");
     }
 
 private:

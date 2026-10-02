@@ -26,7 +26,7 @@ public:
             return;
         }
         auto* existing = std::get_if<Storage::SetType>(&entry->value);
-        if (!existing) CommandException(WrongTypeError{});
+        if (!existing) WrongTypeError();
         Storage::SetType set = *existing;
 
         for (size_t i = 0; i < ctx.GetArgsCount(); i++)

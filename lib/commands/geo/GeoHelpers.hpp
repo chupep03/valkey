@@ -30,7 +30,7 @@ inline double UnitToMeters(const std::string& unit) {
     if (unit == "km") return 1000.0;
     if (unit == "mi") return 1609.344;
     if (unit == "ft") return 0.3048;
-    throw CommandException(OtherError{}, "unsupported unit '" + unit + "'");
+    throw CommandException("unsupported unit '" + unit + "'");
 }
 
 inline std::string ToUpper(std::string s) {
@@ -41,9 +41,9 @@ inline std::string ToUpper(std::string s) {
 
 inline void ValidateCoordinates(double lon, double lat) {
     if (lon < -180.0 || lon > 180.0)
-        throw CommandException(OtherError{}, "invalid longitude, must be in [-180, 180]");
+        throw CommandException("invalid longitude, must be in [-180, 180]");
     if (lat < -kMaxLat || lat > kMaxLat)
-        throw CommandException(OtherError{}, "invalid latitude, must be in [-85.05112878, 85.05112878]");
+        throw CommandException("invalid latitude, must be in [-85.05112878, 85.05112878]");
 }
 
 } // namespace Commands::GeoHelpers

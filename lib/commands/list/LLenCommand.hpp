@@ -24,7 +24,7 @@ public:
         }
 
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
 
         ctx.Out().Int(static_cast<long long>(existing->size()));
     }

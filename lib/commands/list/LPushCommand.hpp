@@ -30,7 +30,7 @@ public:
             return;
         }
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
 
         Storage::ListType list = *existing;
         for (std::size_t i = 1; i < ctx.GetArgsCount(); ++i) {

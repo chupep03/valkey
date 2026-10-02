@@ -20,7 +20,7 @@ public:
             return;
         }
         auto* s = std::get_if<Storage::StringType>(&entry->value);
-        if (!s) throw CommandException(WrongTypeError{});
+        if (!s) throw WrongTypeError();
 
         ctx.Out().Bulk(*s);
     }

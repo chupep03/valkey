@@ -34,7 +34,7 @@ public:
         }
 
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
         auto norm = NormalizeIndex(index, existing->size());
         if (!norm) {
             ctx.Out().Nil();

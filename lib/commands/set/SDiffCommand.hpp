@@ -26,7 +26,7 @@ public:
             return;
         }
         auto* first = std::get_if<Storage::SetType>(&first_entry->value);
-        if (!first) throw CommandException(WrongTypeError{});
+        if (!first) throw WrongTypeError();
         Storage::SetType result = *first;
 
         for (std::size_t i = 1; i < ctx.GetArgsCount(); ++i) {
@@ -34,7 +34,7 @@ public:
             auto entry = ctx.Storage().Get(key);
             if (!entry) continue;
             auto* existing = std::get_if<Storage::SetType>(&entry->value);
-            if (!existing) throw CommandException(WrongTypeError{});
+            if (!existing) throw WrongTypeError();
 
             for (const auto& item : *existing) result.erase(item);
             if (result.empty()) break;

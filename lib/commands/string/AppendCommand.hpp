@@ -28,7 +28,7 @@ public:
         }
 
         auto* s = std::get_if<Storage::StringType>(&entry->value);
-        if (!s) throw CommandException(WrongTypeError{});
+        if (!s) throw WrongTypeError();
 
         Storage::StringType combined = *s + value;
         long long len = static_cast<long long>(combined.size());

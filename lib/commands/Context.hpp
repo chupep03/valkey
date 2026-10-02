@@ -33,7 +33,7 @@ public:
 
     std::string_view GetArgumentAsStr(std::size_t i) const {
         if (i >= args_.size()) {
-            throw CommandException(WrongTypeError{});
+            throw WrongTypeError();
         }
         return args_[i];
     }
@@ -44,7 +44,7 @@ public:
         auto [ptr, ec] = std::from_chars(
             sv.data(), sv.data() + sv.size(), value);
         if (ec != std::errc{} || ptr != sv.data() + sv.size()) {
-            throw CommandException(WrongTypeError{});;
+            throw WrongTypeError();
         }
         return value;
     }
@@ -55,13 +55,13 @@ public:
         auto [ptr, ec] = std::from_chars(
             sv.data(), sv.data() + sv.size(), value);
         if (ec != std::errc{} || ptr != sv.data() + sv.size()) {
-            throw CommandException(WrongTypeError{});;
+            throw WrongTypeError{};;
         }
         return value;
     }
 
-    void RequireArgs(size_t n) {if (args_.size() != n) throw CommandException(ArgsError{}, "RequireArgs");}
-    void RequireMinArgs(size_t n) const {if (args_.size() < n) throw CommandException(ArgsError{}, "RequireMinArgs");}
+    void RequireArgs(size_t n) {if (args_.size() != n) throw ArgsError("RequireArgs");}
+    void RequireMinArgs(size_t n) const {if (args_.size() < n) throw ArgsError("RequireMinArgs");}
 
     Storage::StorageEngine& Storage() noexcept { return storage_;}
     Storage::MemoryManager& Memory() noexcept { return mm_; }

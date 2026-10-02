@@ -17,7 +17,37 @@ namespace Commands {
 class SInterCommand : public ICommand {
 public:
     void Execute(Context& ctx) override {
-        // todo
+        ctx.RequireMinArgs(1);
+        std::vector<const Storage::SetType*> sets(ctx.GetArgsCount());
+
+        for (size_t i = 0; i < ctx.GetArgsCount(); i++) {
+            std::string key(ctx.GetArgumentAsStr(i));
+             auto entry = ctx.Storage().Get(key);
+            if (!entry) {
+                ctx.Out().Array({});
+                return;
+            }
+            auto* existing = std::get_if<Storage::SetType>(&entry->value);
+            if (!existing) throw WrongTypeError{};
+            sets.push_back(existing);
+        }
+
+        auto smaller = [](const auto* a, const auto* b){ return a->size() < b->size(); };
+        auto smallest_set = std::min_element(sets.begin(), sets.end(), smaller);
+
+        Storage::SetType result = *(*smallest_set);
+        for (const auto* s : sets) {
+            if (s == *smallest_set) continue;
+            for(auto it = result.begin(); it != result.end();) {
+                if (s->contains(*it)) {
+                    it = result.erase(it);
+                } else {
+                    it++;
+                }
+            }
+        }
+        std::vector<std::string> out(result.begin(), result.end());
+        ctx.Out().Array(out);
     }
 };
 

@@ -27,7 +27,7 @@ public:
         if (has_count) {
             count = ctx.GetArgumentAsLLInt(1);
             if (count < 0) {
-                throw CommandException(OtherError{}, "value is out of range, must be positive");
+                throw CommandException("value is out of range, must be positive");
             }
         }
 
@@ -39,7 +39,7 @@ public:
         }
 
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
 
         if (count == 0) {
             ctx.Out().Array(std::vector<std::string>{});

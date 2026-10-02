@@ -28,9 +28,9 @@ inline SearchArguments ParseSearchTail(Context& ctx, size_t tail_start) {
     SearchArguments search_args;
     auto need = [&](size_t tag_idx, std::string tag, bool tag_check = false) {
         if (ctx.GetArgsCount() <= tag_idx) 
-            throw CommandException(SyntaxError{}, "syntax error: expected " + tag);
+            throw SyntaxError("expected " + tag);
         if (tag_check && (ToUpper(std::string(ctx.GetArgumentAsStr(tag_idx))) != tag)) 
-            throw CommandException(SyntaxError{}, "syntax error: expected tagword " + tag);
+            throw SyntaxError("expected tagword " + tag);
     };
 
     // FROMLONLAT
@@ -48,7 +48,7 @@ inline SearchArguments ParseSearchTail(Context& ctx, size_t tail_start) {
     std::string unit = ToUpper(std::string(ctx.GetArgumentAsStr(tail_start + 5)));
     double unit_m = UnitToMeters(unit);
 
-       if (radius < 0.0) throw CommandException(OtherError{}, "radius must be non-negative");
+       if (radius < 0.0) throw CommandException("radius must be non-negative");
     search_args.radius_km = (radius * unit_m) / 1000.0;
 
     ValidateCoordinates(search_args.lon, search_args.lat);
@@ -74,19 +74,19 @@ inline SearchArguments ParseSearchTail(Context& ctx, size_t tail_start) {
     if (i < ctx.GetArgsCount()) {
         std::string opt = ToUpper(std::string(ctx.GetArgumentAsStr(i)));
         if (opt != "COUNT")
-            throw CommandException(SyntaxError{}, "syntax error: unexpected token '" +
+            throw SyntaxError("unexpected token '" +
                                std::string(ctx.GetArgumentAsStr(i)) + "'");
         if (i + 1 >= ctx.GetArgsCount()) 
-            throw CommandException(SyntaxError{}, "syntax error: COUNT requires a value");
+            throw SyntaxError("syntax error: COUNT requires a value");
 
         long long n = ctx.GetArgumentAsLLInt(i + 1);
-        if (n <= 0) throw CommandException(SyntaxError{}, "COUNT must be positive");
+        if (n <= 0) throw SyntaxError("COUNT must be positive");
         search_args.has_count = true;
         search_args.count = n;
         i += 2;
     }
 
-    if (i != ctx.GetArgsCount()) throw CommandException(SyntaxError{}, "syntax error: trailing tokens");
+    if (i != ctx.GetArgsCount()) throw SyntaxError("trailing tokens");
     return search_args;
 }
 

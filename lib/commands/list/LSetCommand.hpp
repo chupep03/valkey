@@ -22,14 +22,14 @@ public:
 
         auto entry = ctx.Storage().Get(key);
         if (!entry) {
-            throw CommandException(OtherError{}, "no such key");
+            throw CommandException("no such key");
         }
 
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
         auto norm = NormalizeIndex(index, existing->size());
         if (!norm) {
-            throw CommandException(IndexError{}, "index out of range");
+            throw IndexError("index out of range");
         }
 
         Storage::ListType list = *existing;

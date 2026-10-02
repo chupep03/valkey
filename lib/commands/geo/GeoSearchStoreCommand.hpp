@@ -32,11 +32,11 @@ public:
             return;
         }
         auto* points = std::get_if<Storage::GeoType>(&src->value);
-        if (!points) throw CommandException(WrongTypeError{});
+        if (!points) throw WrongTypeError();
 
         std::vector<std::string> found = GeoHelpers::RunSearch(*points, q);
         Storage::SetType result(found.begin(), found.end());
-        
+
         ctx.Storage().Set(dest_key, Storage::Entry{std::move(result)});
         ctx.Out().Int(static_cast<long long>(found.size()));
     }

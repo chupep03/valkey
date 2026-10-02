@@ -24,7 +24,7 @@ public:
         auto dst_entry = ctx.Storage().Get(dst_key);
         if (dst_entry) {
             auto* d = std::get_if<Storage::SetType>(&dst_entry->value);
-            if (!d) throw CommandException(WrongTypeError{});
+            if (!d) throw WrongTypeError();
         }
 
         auto src_entry = ctx.Storage().Get(src_key);
@@ -33,7 +33,7 @@ public:
             return;
         }
         auto* src = std::get_if<Storage::SetType>(&src_entry->value);
-        if (!src) throw CommandException(WrongTypeError{});
+        if (!src) throw WrongTypeError();
 
         if (src->count(member) == 0) {
             ctx.Out().Int(0);

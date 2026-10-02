@@ -28,7 +28,7 @@ public:
             c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
         }
         const bool before = (where == "BEFORE");
-        if (!before && where != "AFTER") throw CommandException(SyntaxError{}, "syntax error");
+        if (!before && where != "AFTER") throw SyntaxError("syntax error");
 
         auto entry = ctx.Storage().Get(key);
         if (!entry) {
@@ -37,7 +37,7 @@ public:
         }
 
         auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw CommandException(WrongTypeError{});
+        if (!existing) throw WrongTypeError();
 
         Storage::ListType list = *existing;
         auto it = std::find(list.begin(), list.end(), pivot);

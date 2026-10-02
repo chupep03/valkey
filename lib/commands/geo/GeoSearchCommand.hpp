@@ -28,7 +28,7 @@ public:
             return;
         }
         auto* points = std::get_if<Storage::GeoType>(&entry->value);
-        if (!points) throw CommandException(WrongTypeError{});
+        if (!points) throw WrongTypeError();
 
         std::vector<std::string> out = GeoHelpers::RunSearch(*points, q);
         ctx.Out().Array(out);
