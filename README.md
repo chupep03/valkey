@@ -3,33 +3,30 @@
 A small in-memory key-value store written in C++23, implementing a
 subset of the [Valkey](https://valkey.io/) / Redis command set.
 
-> Status: **work in progress**. Storage core, comand dispatcher in progress. See [ROADMAP](docs/Roadmap.md) for future plans.
-
 ## What it is
 
 - **In-memory, embeddable.** Single process, no external dependencies.
-- **Valkey-compatible subset.** String, List, Set and Geospatial commands,
-  plus a few generic ones. See the full list below.
-- **C++23.** Uses `std::variant`, `std::visit`, Concepts, `std::expected`,
-  `std::shared_mutex` (planned), and other modern facilities.
-- **Planned:** multi-threaded execution with a TCP/RESP frontend.
-  See [ROADMAP](docs/Roadmap.md).
+- **Valkey-compatible subset.** String, List, Set, Geo, and generic
+  commands. See the list below.
+- **C++23.** Uses `std::variant`, `std::visit`, the Overload pattern,
+  `std::from_chars`, `std::shared_ptr<const Entry>`
+- **Planned:** multi-threaded core and a TCP/RESP frontend.
+  See [docs/ROADMAP.md](docs/ROADMAP.md).
 
-## ## Requirements
+## Requirements
 
-- C++23-capable compiler (GCC 13+, Clang 17+, MSVC 19.36+).
-- CMake 3.20+.
-- (Optional) `-fsanitize=thread` support for concurrency testing.
+- C++23 compiler (GCC 13+, Clang 17+, MSVC 19.36+)
+- CMake 3.20+
+
+## Build
+
+    cmake -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j
 
 ## Run
 
-Interactive REPL (commands from stdin, results to stdout):
-
-    ./build/valkey-lite
-
-With a memory limit (suffixes `b`, `kb`, `mb`, `gb`):
-
-    ./build/valkey-lite --maxmemory 64mb
+    ./build/valkey
+    ./build/valkey --maxmemory 64mb
 
 Exit with `EXIT` or `Ctrl-D`.
 
@@ -61,63 +58,51 @@ Exit with `EXIT` or `Ctrl-D`.
     1) "cpp"
     2) "redis"
 
-    > GEOADD cities 30.31 59.94 "spb"
+    > GEOADD cities 30.31 59.94 spb
     (integer) 1
     > GEODIST cities spb spb
     "0.0000"
 
 ## Supported commands
 
-Legend: `[x]` implemented · `[ ]` planned · `[-]` out of scope
+**String**
+`SET`, `GET`, `STRLEN`, `APPEND`, `EXPIRE`, `TTL`
 
-### String
+**List**
+`LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN`, `LRANGE`, `LINDEX`, `LSET`, `LINSERT`
 
-- [ ] `SET`, `GET`, `STRLEN`, `APPEND`, `EXPIRE`, `TTL`
+**Set**
+`SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`, `SCARD`, `SUNION`, `SINTER`, `SDIFF`, `SMOVE`
 
-### List
+**Geo**
+`GEOADD`, `GEOPOS`, `GEODIST`, `GEOSEARCH`, `GEOSEARCHSTORE`
 
-- [ ] `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN`, `LRANGE`, `LINDEX`, `LSET`, `LINSERT`
+**Generic**
+`TYPE`, `DEL`, `EXISTS`, `KEYS`, `FLUSHDB`, `DBSIZE`, `MEMORY USAGE`,
+`CONFIG SET/GET maxmemory`
 
-### Set
+**Control**
+`EXIT`, EOF
 
-- [ ] `SADD`, `SREM`, `SISMEMBER`, `SMEMBERS`, `SCARD`, `SUNION`, `SINTER`, `SDIFF`, `SMOVE`
+## Project layout
 
-### Geo
-
-- [ ] `GEOADD`, `GEOPOS`, `GEODIST`, `GEOSEARCH`, `GEOSEARCHSTORE`
-
-### Generic
-
-- [ ] `TYPE`, `DEL`, `EXISTS`, `KEYS`, `FLUSHDB`, `CONFIG SET/GET`, `DBSIZE`, `MEMORY USAGE`
-
-### Control
-
-- [ ] `EXIT` / EOF
-
-> Update the checkboxes as commands land. Do not let this list drift
-> from reality — a stale status is worse than no status.
-
-## Design
-
-See [ARCHITECTURE](docs/ARCHITECTURE.md) for details.
-
-## Roadmap
-
-See [ROADMAP](docs/ROADMAP.md). Short version:
-
-1. **Core.** Single-threaded storage + REPL. *(current)*
-2. **Multi-threaded core.** `std::shared_mutex`, `shared_ptr<const Entry>`,
-   TSan-clean stress tests.
-3. **Network frontend.** TCP + RESP, thread-per-connection.
-4. **Polish.** Benchmarks, Docker image, CI, documentation.
+    bin/main.cpp                  — thin entry point
+    lib/
+      storage/                    — data layer (Entry, StorageEngine, MemoryManager)
+      commands/                   — command layer (ICommand, Context, CommandReg)
+        string/ list/ set/ geo/ generic/
+      parser/                     — Tokenizer
+      application/                — Args, Repl, ResponseFormatter
+    docs/                         — README, ARCHITECTURE, DECISIONS, ROADMAP, CONTRACTS
+    tests/                        — unit tests (planned)
 
 ## Documentation
 
-- [ARCHITECTURE](docs/ARCHITECTURE.md) — layers, responsibilities, data flow.
-- [DECISIONS](docs/DECISIONS.md) — design decisions (ADR-lite).
-- [CONTRACTS](docs/CONTRACTS.md) — class invariants and contracts.
-- [ROADMAP](docs/ROADMAP.md) — plan and progress.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, responsibilities, data flow.
+- [docs/DECISIONS.md](docs/DECISIONS.md) — design decisions (ADR-lite).
+- [docs/ROADMAP.md](docs/ROADMAP.md) — plan and progress.
+- [docs/CONTRACTS.md](docs/CONTRACTS.md) — class invariants and contracts.
 
 ## License
 
-SMTH open
+MIT
