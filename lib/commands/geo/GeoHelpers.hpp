@@ -25,19 +25,21 @@ inline double HaversineKm(double lat1, double lon1,
     return kEarthRadiusKm * 2.0 * std::asin(std::sqrt(a));
 }
 
-inline double UnitToMeters(const std::string& unit) {
-    if (unit == "m")  return 1.0;
-    if (unit == "km") return 1000.0;
-    if (unit == "mi") return 1609.344;
-    if (unit == "ft") return 0.3048;
-    throw CommandException("unsupported unit '" + unit + "'");
-}
-
 inline std::string ToUpper(std::string s) {
     for (char& c : s) c = static_cast<char>(
         std::toupper(static_cast<unsigned char>(c)));
     return s;
 }
+
+inline double UnitToMeters(const std::string& unit) {
+    std::string unit_u = ToUpper(unit);
+    if (unit_u == "M")  return 1.0;
+    if (unit_u == "KM") return 1000.0;
+    if (unit_u == "MI") return 1609.344;
+    if (unit_u == "FT") return 0.3048;
+    throw CommandException("unsupported unit '" + unit + "'");
+}
+
 
 inline void ValidateCoordinates(double lon, double lat) {
     if (lon < -180.0 || lon > 180.0)

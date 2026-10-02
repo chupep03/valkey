@@ -18,7 +18,8 @@ class SInterCommand : public ICommand {
 public:
     void Execute(Context& ctx) override {
         ctx.RequireMinArgs(1);
-        std::vector<const Storage::SetType*> sets(ctx.GetArgsCount());
+        std::vector<const Storage::SetType*> sets;
+        sets.reserve(ctx.GetArgsCount());
 
         for (size_t i = 0; i < ctx.GetArgsCount(); i++) {
             std::string key(ctx.GetArgumentAsStr(i));
@@ -39,7 +40,7 @@ public:
         for (const auto* s : sets) {
             if (s == *smallest_set) continue;
             for(auto it = result.begin(); it != result.end();) {
-                if (s->contains(*it)) {
+                if (!s->contains(*it)) {
                     it = result.erase(it);
                 } else {
                     it++;

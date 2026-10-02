@@ -23,7 +23,7 @@ public:
         std::string unit = "m";
 
         if (ctx.GetArgsCount() >= 4) {
-            unit = GeoHelpers::ToUpper(std::string(ctx.GetArgumentAsStr(3)));
+            unit = std::string(ctx.GetArgumentAsStr(3));
         }
         double unit_m = GeoHelpers::UnitToMeters(unit);
 
