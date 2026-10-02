@@ -1,28 +1,22 @@
 # Architecture
 
 This document describes the main parts of the project, what each class
-is responsible for, and how they talk to each other.
+is responsible for, and how it connects with others.
 
 ## Overview
 
 The project is split into three namespaces:
 
-- **`Storage`** — the data layer. Owns the keys and values, tracks memory,
-  handles TTL. Knows nothing about commands or input/output.
-- **`Commands`** — the command layer. One command = one class. Each command
-  reads its arguments, talks to `Storage`, and writes a reply.
-- **`Parser`** — the input/output layer. Turns a raw line into tokens, and
-  turns command replies into text for the user.
+- **`Storage`** - the data layer. Owns the keys and values, tracks memory, TTL. Knows nothing about commands or input/output.
+- **`Commands`** - the command layer. One command = one class (inhereted from interface). Each command reads its arguments, talks to `Storage`, and writes a reply.
+- **`Parser`** - the input/output layer. Turns a raw line into tokens, and contains interface for response.
+- **`Application`** - carries out the REPL work. Have own inherited class for respinses, parses valkey launch command
 
-The `main` function (the REPL) glues everything together: reads a line,
-splits it, looks up a command, runs it, prints the result.
+The `main` works with **`Application`**.
 
 Dependencies go one way:
 
-    main → Parser → Commands → Storage
-
-`Storage` does not know about `Commands`. `Commands` does not know about
-`main` or the console. This keeps the core testable without any I/O.
+    main -> Application -> Parser -> Commands -> Storage
 
 ---
 
@@ -32,27 +26,20 @@ Dependencies go one way:
 
 Not a class, but a set of type aliases that define what a value can be.
 
-**Aliases:**
+**Atomic Aliases:**
 
 - `StringType = std::string` — a plain string.
-- `ListType = std::deque<std::string>` — an ordered list. Deque because
-  we push and pop from both ends.
-- `SetType = std::unordered_set<std::string>` — a set of unique strings.
+- `ListType = std::deque<std::string>` - an ordered list. Deque because we push and pop from both ends.
+- `SetType = std::unordered_set<std::string>` - a set of unique strings.
 - `GeoType = std::vector<GeoPoint>` — a list of geo points.
-
-**Struct `GeoPoint`:**
-
-- `double longitude`
-- `double latitude`
-- `std::string member`
+- `GeoPoint = {double lon, double lat, std::string mamber}` - lon, lat and member name.
 
 **Alias `ValueVariant`:**
 
     std::variant<StringType, ListType, SetType, GeoType>
 
-This is the single source of truth about which value types the database
-supports. Adding a new type means adding it here, and then the compiler
-will tell us every place that needs updating.
+This is the single source of info about which value types the database
+supports. Adding a new type is adding it here.
 
 **Responsibility:** define the types. No logic.
 
@@ -65,40 +52,35 @@ commands and in `Entry`.
 
 One record in the database: a value plus metadata.
 
-**Fields (public):**
-
-- `ValueVariant value` — the actual data.
-- `std::optional<t_point> exp_time` — when the key expires. `nullopt`
-  means "no TTL". `t_point` is `std::chrono::system_clock::time_point`.
-
 **Fields (private):**
 
-- `size_t memory_usage_` — an approximate size of this entry in bytes,
-  not counting the key.
+- `size_t memory_usage_` — an approximate size of this entry object in bytes.
+
+**Fields (public):**
+
+- `ValueVariant value` - the data.
+- `std::optional<t_point> exp_time` - time remaining until key expire. `nullopt`
+  means no TTL for key.
+- `t_point` is `std::chrono::system_clock::time_point`.
 
 **Methods:**
 
-- `Entry(ValueVariant val, std::optional<t_point> expire = nullopt)` —
-  constructor. Computes `memory_usage_` via `CalculateSelfSize()`.
-- `bool IsExpired() const noexcept` — true if the TTL has passed.
+- `Entry(ValueVariant val, std::optional<t_point> expire = nullopt)` - constructor,computes `memory_usage_` with `CalculateSelfSize()`.
+- `bool IsExpired() const noexcept` - is this entry expired by TTL.
 - `size_t MemoryUsage() const noexcept` — getter for `memory_usage_`.
-- `size_t CalculateSelfSize() const noexcept` — approximate size of the
-  entry. Uses `std::visit` over the variant.
+- `size_t CalculateSelfSize() const noexcept` — approximate size of the entry.
 
-**Responsibility:** hold a value and its TTL. Nothing else.
+**Responsibility:** includes value and TTL.
 
 **Not responsible for:**
 
-- Removing itself from the storage when expired. `StorageEngine` does that.
-- Knowing its key. The key is stored in the map, not in the entry.
-- Formatting itself for output.
-- Being thread-safe. It is a value type — copy it, move it, and don't
-  share a single instance between threads.
+- Removing itself from the storage when expired. `StorageEngine` deletes it.
+- Knowing its key. Key holds in the map.
 
 **Design note:** `Entry` is meant to be immutable after construction.
-Mutating commands like `APPEND` or `LSET` build a *new* `Entry` and
+Mutating commands like `APPEND` or `LSET` build a new `Entry` and
 replace the old one. This makes future multi-threading much easier:
-readers keep a `shared_ptr<const Entry>` and are never disturbed.
+readers keep a `shared_ptr<const Entry>` and entry will be never changed over the reader.
 
 ---
 
@@ -148,41 +130,31 @@ for TTL and memory.
 
 **Fields:**
 
-- `std::unordered_map<std::string, Entry> storage` — the data.
-  *(May become `unordered_map<string, shared_ptr<const Entry>>` later —
-  see `DECISIONS.md`.)*
+- `std::unordered_map<std::string, Entry> storage` - the data.
 - `MemoryManager& mem_manager` — a reference. The manager lives longer
   than the engine.
 
 **Methods:**
 
-- `StorageEngine(MemoryManager& mm)` — constructor.
-- `Entry* Get(const std::string& key)` — looks up a key. Returns
-  `nullptr` if not found or expired. *(Signature under review —
-  see `DECISIONS.md`.)*
-- `void Set(const std::string& key, Entry&& entry)` — writes an entry.
-  Recalculates memory and calls `mem_manager.Resize`. Throws on OOM.
-- `int Remove(const std::vector<std::string>& keys)` — deletes keys,
-  returns how many were actually removed.
-- `bool Exist(const std::string& key)` — checks existence. Expired keys
-  count as missing.
-- `std::vector<std::string> GetAllKeys(const std::string& pattern) const` —
-  returns keys matching a glob pattern. Used by `KEYS`.
-- `void Flush()` — removes everything.
-- `size_t Size() const` — number of keys.
-- `size_t GetMemUsage(const std::string& key)` — size of one key+value.
-- `size_t TotalMemory() const` — total usage. Usually obtained from
-  `MemoryManager`, but kept here for convenience.
+- `StorageEngine(MemoryManager& mm)` - constructor.
+- `Entry* Get(const std::string& key)` - looks up a key. Returns `nullptr` if not found or expired.
+- `void Set(const std::string& key, Entry&& entry)` - writes an entry. Recalculates memory and calls `mem_manager.Resize`. Throws an OOM.
+- `int Remove(const std::vector<std::string>& keys)` - deletes keys, returns how many were removed.
+- `bool Exist(const std::string& key)` - checks existence of keys. Expired keys count as missing.
+- `std::vector<std::string> GetAllKeys(const std::string& pattern) const` - returns keys matching a glob pattern. Used by `KEYS`.
+- `void Flush()` - removes everything.
+- `size_t Size() const` - number of keys.
+- `size_t GetMemUsage(const std::string& key)` - size of one key-value.
+- `size_t TotalMemory() const` - total usage.
 
 **Private helper:**
 
 - `check_ttl(key)` — looks at `exp_time`, removes the entry if expired,
-  and updates `MemoryManager`. Called from every public method that
-  reads or writes a key, so expired entries never leak into results.
+  and updates `MemoryManager`.
 
 **Responsibility:**
 
-- Own the map. Nobody else touches `storage` directly.
+- Own the map. Nobody else touches `Storage` directly.
 - Apply TTL rules on every access.
 - Keep `MemoryManager` in sync on every mutation.
 
@@ -190,8 +162,7 @@ for TTL and memory.
 
 - Parsing commands or arguments.
 - Formatting replies.
-- Knowing the type of a value. From its point of view, everything is
-  an `Entry`.
+- Knowing the type of a value. Contains `Entry` values.
 
 ---
 
@@ -204,11 +175,9 @@ needs to do its job.
 
 **Fields:**
 
-- `std::vector<std::string> args` — the arguments of the command,
-  without the command name.
+- `std::vector<std::string> args` — the arguments of the command, without the command name (indexes from `0`).
 - `StorageEngine& storage` — reference to the storage.
-- `MemoryManager& mem` — reference to the memory manager. Needed by
-  `CONFIG SET/GET` and `MEMORY USAGE`.
+- `MemoryManager& mem` — reference to the memory manager
 - `IResponse& out` — reference to the reply formatter.
 
 **Helper methods for argument parsing** (planned):
@@ -223,8 +192,7 @@ needs to do its job.
 **Not responsible for:**
 
 - Parsing a full line. `Tokenizer` does that.
-- Storing any state between calls. A new `Context` is created for every
-  line the user types.
+- Storing any state between calls. A new `Context` is created for every line the user types.
 
 ---
 
@@ -234,8 +202,7 @@ Abstract base class for all commands.
 
 **Methods:**
 
-- `virtual ~ICommand() = default;` — required, since instances are stored
-  in `unique_ptr<ICommand>`.
+- `virtual ~ICommand() = default;` — required.
 - `virtual void Execute(Context& ctx) = 0;` — runs the command.
 
 **Responsibility:** define one operation.
@@ -245,31 +212,23 @@ Abstract base class for all commands.
 - Knowing who called it.
 - Registering itself.
 
-**Design note:** each command is a separate class (for example
-`SetCommand`, `GetCommand`, `LPushCommand`). This is easy to test and
-easy to read, at the cost of many small files.
-
 ---
 
 ### `CommandReg` (header `CommandReg.hpp`)
 
-The command registry. A map from command names to command objects.
+The command registry. A map command names - command objects.
 
 **Fields:**
 
-- `std::unordered_map<std::string, std::unique_ptr<ICommand>> commands_`
-  — keys are stored in UPPER CASE for case-insensitive lookup.
+- `std::unordered_map<std::string, std::unique_ptr<ICommand>> commands_` — keys are stored in UPPER CASE.
 
 **Methods:**
 
-- `void Register(const std::string& name, std::unique_ptr<ICommand> cmd)`
-  — adds a command. The name is upper-cased first.
-- `ICommand* Find(const std::string& name) const` — returns the command
-  or `nullptr`.
-- `void RegisterAll()` — one place where all commands are created and
-  registered. Called once at startup.
+- `void Register(const std::string& name, std::unique_ptr<ICommand> cmd)` - adds a command. The name is upper-cased first.
+- `ICommand* Find(const std::string& name) const` - returns the command or `nullptr`.
+- `void RegisterAll()` - one place where all commands are created and registered Called once at launch.
 
-**Responsibility:** know which command exists. Nothing else.
+**Responsibility:** know which command exists.
 
 **Not responsible for:**
 
@@ -295,14 +254,14 @@ Splits one input line into tokens.
 - Empty tokens are dropped.
 - An empty line or a line of spaces returns an empty vector.
 - Quotes are **not** supported yet. If we need them (for example
-  `SET key "hello world"`), we add a `case '"'` branch.
+  `SET key "hello world"`), we add a `case '"'` realization.
 
 **Responsibility:** cut a string into pieces. Nothing more.
 
 **Not responsible for:**
 
 - Understanding commands.
-- Converting `"123"` to an integer.
+- Converting num-string to an integer.
 - Handling `[`, `]`, `|` — those are documentation syntax, not input.
 
 ---
@@ -314,51 +273,35 @@ A single place for all output formatting.
 **Interface (draft):**
 
 - `void Ok()` — prints `OK`.
-- `void Nil()` — prints `(nil)` for a missing key.
-- `void Int(long long n)` — prints an integer reply.
-- `void Bulk(const std::string& s)` — prints a single string reply.
-- `void Array(const std::vector<std::string>& items)` — prints a list
-  of strings.
+- `void Nil()` — prints `(nil)` for `no answer`.
+- `void Int(long long n)` — prints an integer.
+- `void Bulk(const std::string& s)` — prints a single string.
+- `void Array(const std::vector<std::string>& items)` — prints a list of strings.
 - `void Error(const std::string& msg)` — prints an error to `stderr`.
 
 **Responsibility:** know the exact output format. If the format changes
-(for example, we switch to RESP), only this class changes.
+(for example, we switch to RESP), only this class needed changes.
 
 **Not responsible for:**
 
 - Building data.
 - Knowing specific commands.
 
-**Design note:** the formatter must **not** be a global singleton.
-In the single-threaded REPL there is one instance. Later, when the
-server handles many connections, each connection gets its own formatter
-with its own output buffer.
-
 ---
 
-## Data flow
+## Example Data flow
 
 **`SET key value`**
 
-1. `main` reads a line.
+1. `Application` reads a line.
 2. `Tokenizer` returns `{"SET", "key", "value"}`.
 3. `CommandReg::Find("SET")` returns a `SetCommand*`.
-4. `main` builds a `Context` with args `{"key", "value"}` and runs
+4. `Application` builds a `Context` with args `{"key", "value"}` and runs
    `SetCommand::Execute(ctx)`.
 5. The command builds a new `Entry` with a `StringType` value.
 6. `StorageEngine::Set` asks `MemoryManager::Resize` if it fits.
 7. On success, `ctx.out.Ok()` writes `OK` to stdout.
-8. On failure, `MemoryManager` throws and `main` prints the OOM error
-   to stderr.
-
-**`GET key`**
-
-Same until step 4. Then:
-
-5. `StorageEngine::Get` checks TTL, removes the key if expired, and
-   returns `nullptr`.
-6. If `nullptr`, the command calls `ctx.out.Nil()`.
-7. Otherwise `ctx.out.Bulk(value)`.
+8. On failure, `MemoryManager` throws and `main` prints the OOM error to stderr.
 
 **Unknown command**
 
@@ -377,17 +320,11 @@ Same until step 4. Then:
 
 ## Rules to keep in mind
 
-1. **One direction of dependencies.** `Storage` never includes
-   `Commands`. `Commands` never includes `main`.
-2. **No globals.** `StorageEngine`, `MemoryManager`, and the response
-   formatter are passed explicitly through `Context`.
-3. **Commands have no state.** The same `SetCommand` object may serve
-   many calls, possibly from different threads later.
-4. **`Context` is per call.** It is created inside `main` for each line
-   and destroyed after.
-5. **`Entry` is a value.** Do not store pointers to it. Copy or move it.
-6. **All mutations go through `StorageEngine`.** No code outside
-   `StorageEngine` touches the map.
-7. **All memory accounting goes through `MemoryManager`.** No code
-   outside updates `actual_usage_`.
-8. **All output goes through the formatter.** No `std::cout` in commands.
+1. **One direction of dependencies.** `Storage` never includes `Commands`
+2. **No globals.** `StorageEngine`, `MemoryManager`, and the response formatter are given through `Context`
+3. **Commands have no state.** The same `SetCommand` object may serve many calls, possibly from different threads later
+4. **`Context` is per call.** It is created inside `main` for each line and destroyed after.
+5. **`Entry` is a value.** Do not store pointers to it.
+6. **All mutations go through `StorageEngine`.** No code outside `StorageEngine` touches the map.
+7. **All memory accounting goes through `MemoryManager`.** No code outside updates `actual_usage_`.
+8. **All output goes through the formatter.** No `std::cout` in commands, only `IRespoтse` interface.
