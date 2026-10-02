@@ -67,8 +67,8 @@ One record in the database: a value plus metadata.
 
 - `Entry(ValueVariant val, std::optional<t_point> expire = nullopt)` - constructor,computes `memory_usage_` with `CalculateSelfSize()`.
 - `bool IsExpired() const noexcept` - is this entry expired by TTL.
-- `size_t MemoryUsage() const noexcept` — getter for `memory_usage_`.
-- `size_t CalculateSelfSize() const noexcept` — approximate size of the entry.
+- `size_t MemoryUsage() const noexcept` - getter for `memory_usage_`.
+- `size_t CalculateSelfSize() const noexcept` - approximate size of the entry.
 
 **Responsibility:** includes value and TTL.
 
@@ -91,35 +91,28 @@ limit.
 
 **Fields:**
 
-- `size_t actual_usage_` — bytes used right now.
-- `size_t usage_limit_` — the limit. `0` means "no limit".
+- `size_t actual_usage_` - bytes used right now.
+- `size_t usage_limit_` - the limit. `0` means "no limit".
 
-**Constants:** `KB`, `MB`, `GB` — for parsing size suffixes.
+**Constants:** `KB`, `MB`, `GB` - for parsing size suffixes.
 
 **Methods:**
 
-- `MemoryManager(size_t limit_bytes = 0)` — constructor.
-- `size_t GetUsage() const noexcept` — current usage.
-- `size_t GetLimit() const noexcept` — current limit.
-- `void SetLimit(size_t bytes)` — used by `CONFIG SET maxmemory`.
-  Throws if the new limit is below current usage.
-- `bool CanAllocate(size_t new_size, size_t old_size = 0) const noexcept` —
-  pure check: "would replacing a block of `old_size` with a block of
-  `new_size` still fit?"
-- `void Resize(size_t old_size, size_t new_size)` — check and apply.
-  Throws if it does not fit.
-- `static size_t ParseSizeToBytes(const std::string& str)` — parses
-  strings like `"64kb"`, `"2gb"`, `"1024"`.
+- `MemoryManager(size_t limit_bytes = 0)` - constructor.
+- `size_t GetUsage() const noexcept` - current usage.
+- `size_t GetLimit() const noexcept` - current limit.
+- `void SetLimit(size_t bytes)` - used by `CONFIG SET maxmemory`.
+- `bool CanAllocate(size_t new_size, size_t old_size = 0) const noexcept` - pure check: "Can we replace a block of `old_size` with a block of `new_size`.
+- `void Resize(size_t old_size, size_t new_size)` - check and apply. Throws exception if we cant resize.
+- `static size_t ParseSizeToBytes(const std::string& str)` - parses strings like `"64kb"`, `"2gb"`, `"1024"`.
 
-**Responsibility:** one number for the whole process. Nothing more.
+**Responsibility:** one number for the whole process.
 
 **Not responsible for:**
 
 - Knowing what the memory is used for. No keys, no values.
 - Building error messages. It throws; the caller formats the text.
-- Being thread-safe yet. When we add multi-threading, `actual_usage_`
-  becomes `std::atomic<size_t>` and `Resize` becomes one atomic step.
-  The API will not change.
+- Being thread-safe yet. When we add multi-threading, `actual_usage_` becomes `std::atomic<size_t>` and `Resize` becomes one atomic step.
 
 ---
 
