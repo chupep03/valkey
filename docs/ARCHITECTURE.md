@@ -298,7 +298,7 @@ A single place for all output formatting.
 **Unknown command**
 
 1. `CommandReg::Find` returns `nullptr`.
-2. `main` writes an error to stderr and continues.
+2. `main` throws an exception.
 
 **OOM**
 
