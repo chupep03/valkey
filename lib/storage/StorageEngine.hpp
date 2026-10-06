@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
+#include <shared_mutex>
 
 namespace Storage {
 
@@ -15,17 +17,32 @@ class StorageEngine {
 private:
     using StorageMap =
         std::unordered_map<std::string, std::shared_ptr<const Entry>>;
+
     using Iterator = StorageMap::iterator;
+    using ConstIterator = StorageMap::const_iterator;
 
     StorageMap storage_;
     MemoryManager& mem_manager_;
+    mutable std::shared_mutex mtx_;
 
-    Iterator LookupLive(const std::string& key) {
+    // private helpers haven't lockers. Locking in public methods
+    
+
+    // Doesn't delete expired key
+    ConstIterator FindLiveShared(const std::string& key) const {
+        auto it = storage_.find(key);
+        if (it == storage_.end()) return it;
+        if (it->second->IsExpired()) return storage_.end();
+        return it;
+    }
+
+    // Deletes expired key
+    Iterator FindLiveUnique(const std::string& key) {
         auto it = storage_.find(key);
         if (it == storage_.end()) return it;
         if (!it->second->IsExpired()) return it;
+
         mem_manager_.Resize(TotalSizeFor(key, *it->second), 0);
-        storage_.erase(it);
         return storage_.end();
     }
 
@@ -71,20 +88,23 @@ private:
     }
 
 public:
-    explicit StorageEngine(MemoryManager& mm) noexcept
+    explicit StorageEngine(MemoryManager& mm)
         : mem_manager_(mm) {}
 
     std::shared_ptr<const Entry> Get(const std::string& key) {
-        auto it = LookupLive(key);
+        std::shared_lock lk(mtx_);
+        auto it = FindLiveShared(key);
         if (it == storage_.end()) return nullptr;
         return it->second;
     }
 
     bool Exist(const std::string& key) {
-        return LookupLive(key) != storage_.end();
+        std::shared_lock lk(mtx_);
+        return FindLiveShared(key) != storage_.end();
     }
 
     std::vector<std::string> GetAllKeysByPattern(const std::string& pattern) {
+        std::unique_lock lk(mtx_);
         PurgeExpired();
         std::vector<std::string> result;
         for (const auto& kv : storage_) {
@@ -96,22 +116,32 @@ public:
     }
 
     size_t GetMemUsage(const std::string& key) {
-        auto it = LookupLive(key);
+        std::shared_lock lk(mtx_);
+        auto it = FindLiveShared(key);
         if (it == storage_.end()) return 0;
         return TotalSizeFor(key, *it->second);
     }
 
     size_t Size() {
+        std::unique_lock lk(mtx_);
         PurgeExpired();
         return storage_.size();
+
     }
 
-    size_t TotalMemory() const noexcept {
+    void SetMaxMemory(size_t bytes) {
+        std::unique_lock lk(mtx_);
+        mem_manager_.SetLimit(bytes);
+    }
+
+    size_t TotalMemory() const {
+        std::shared_lock lk(mtx_);
         return mem_manager_.GetUsage();
     }
 
     void Set(const std::string& key, Entry entry) {
-        auto it = LookupLive(key);
+        std::unique_lock lk(mtx_);
+        auto it = FindLiveUnique(key);
         size_t old_total = 0; // if expired
         if (it != storage_.end()) old_total = TotalSizeFor(key, *it->second); 
         size_t new_total = TotalSizeFor(key, entry);
@@ -124,11 +154,11 @@ public:
     }
 
     int Remove(const std::vector<std::string>& keys) {
+        std::unique_lock lk(mtx_);
         int removed = 0;
         for (const auto& key : keys) {
-            auto it = LookupLive(key);
+            auto it = FindLiveUnique(key);
             if (it == storage_.end()) continue; 
-
             mem_manager_.Resize(TotalSizeFor(key, *it->second), 0);
             storage_.erase(it);
             ++removed;
@@ -138,6 +168,7 @@ public:
 
     void Flush() {
         // Invariant - mem_manager_.Usage == GetTotalSize for every element in storage
+        std::unique_lock lk(mtx_);
         mem_manager_.Resize(mem_manager_.GetUsage(), 0);
         storage_.clear();
     }
