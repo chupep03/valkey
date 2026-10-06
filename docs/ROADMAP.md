@@ -9,14 +9,14 @@ Goal: a working single-threaded REPL, all commands implemented, basic tests.
 - [x] `Tokenizer`, `ResponseFormatter`, `Args`, `Repl`
 - [x] `MemoryManager`, `StorageEngine`, `Entry`, `ValueVariant`
 - [x] `ICommand`, `Context`, `CommandReg`, `RegisterAll`
-- [x] String commands (6)
-- [x] List commands (9)
-- [x] Set commands (9)
-- [x] Generic commands (8)
-- [x] Geo commands (6)
+- [x] String commands
+- [x] List commands
+- [x] Set commands
+- [x] Generic commands
+- [x] Geo commands
 - [x] Unit tests for `MemoryManager`, `StorageEngine`, `Entry`
 - [x] Unit tests for each command group
-- [x] Manual smoke test of all commands
+- [x] Manual tests of all commands
 - [x] Update README command checklist
 - [x] CI/CD
 

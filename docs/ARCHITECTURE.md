@@ -28,10 +28,10 @@ Not a class, but a set of type aliases that define what a value can be.
 
 **Atomic Aliases:**
 
-- `StringType = std::string` — a plain string.
+- `StringType = std::string` - a plain string.
 - `ListType = std::deque<std::string>` - an ordered list. Deque because we push and pop from both ends.
 - `SetType = std::unordered_set<std::string>` - a set of unique strings.
-- `GeoType = std::vector<GeoPoint>` — a list of geo points.
+- `GeoType = std::vector<GeoPoint>` - a list of geo points.
 - `GeoPoint = {double lon, double lat, std::string mamber}` - lon, lat and member name.
 
 **Alias `ValueVariant`:**
@@ -54,7 +54,7 @@ One record in the database: a value plus metadata.
 
 **Fields (private):**
 
-- `size_t memory_usage_` — an approximate size of this entry object in bytes.
+- `size_t memory_usage_` - an approximate size of this entry object in bytes.
 
 **Fields (public):**
 
@@ -77,10 +77,9 @@ One record in the database: a value plus metadata.
 - Removing itself from the storage when expired. `StorageEngine` deletes it.
 - Knowing its key. Key holds in the map.
 
-**Design note:** `Entry` is meant to be immutable after construction.
+**Design note:** `Entry` is immutable after construction.
 Mutating commands like `APPEND` or `LSET` build a new `Entry` and
-replace the old one. This makes future multi-threading much easier:
-readers keep a `shared_ptr<const Entry>` and entry will be never changed over the reader.
+replace the old one. This makes MT easier.
 
 ---
 
@@ -142,7 +141,7 @@ for TTL and memory.
 
 **Private helper:**
 
-- `check_ttl(key)` — looks at `exp_time`, removes the entry if expired,
+- `check_ttl(key)` - looks at `exp_time`, removes the entry if expired,
   and updates `MemoryManager`.
 
 **Responsibility:**
@@ -168,24 +167,24 @@ needs to do its job.
 
 **Fields:**
 
-- `std::vector<std::string> args` — the arguments of the command, without the command name (indexes from `0`).
-- `StorageEngine& storage` — reference to the storage.
-- `MemoryManager& mem` — reference to the memory manager
-- `IResponse& out` — reference to the reply formatter.
+- `std::vector<std::string> args` - the arguments of the command, without the command name (indexes from `0`).
+- `StorageEngine& storage` - reference to the storage.
+- `MemoryManager& mem` - reference to the memory manager
+- `IResponse& out` - reference to the reply formatter.
 
 **Helper methods for argument parsing** (planned):
 
 - `int AsInt(size_t index) const`
 - `double AsDouble(size_t index) const`
 - `std::string_view AsString(size_t index) const`
-- `Unit AsUnit(size_t index) const` — for `m`, `km`, `mi`, `ft`.
+- `Unit AsUnit(size_t index) const` - for `m`, `km`, `mi`, `ft`.
 
-**Responsibility:** carry data. Nothing else.
+**Responsibility:** carry data
 
 **Not responsible for:**
 
 - Parsing a full line. `Tokenizer` does that.
-- Storing any state between calls. A new `Context` is created for every line the user types.
+- Storing any ctx data between calls. A `Context` obj is created for every line.
 
 ---
 
@@ -195,8 +194,8 @@ Abstract base class for all commands.
 
 **Methods:**
 
-- `virtual ~ICommand() = default;` — required.
-- `virtual void Execute(Context& ctx) = 0;` — runs the command.
+- `virtual ~ICommand() = default;` - required.
+- `virtual void Execute(Context& ctx) = 0;` - runs the command.
 
 **Responsibility:** define one operation.
 
@@ -213,7 +212,7 @@ The command registry. A map command names - command objects.
 
 **Fields:**
 
-- `std::unordered_map<std::string, std::unique_ptr<ICommand>> commands_` — keys are stored in UPPER CASE.
+- `std::unordered_map<std::string, std::unique_ptr<ICommand>> commands_` - keys are stored in UPPER CASE.
 
 **Methods:**
 
@@ -255,7 +254,7 @@ Splits one input line into tokens.
 
 - Understanding commands.
 - Converting num-string to an integer.
-- Handling `[`, `]`, `|` — those are documentation syntax, not input.
+- Handling `[`, `]`, `|` - those are documentation syntax, not input.
 
 ---
 
@@ -265,12 +264,12 @@ A single place for all output formatting.
 
 **Interface (draft):**
 
-- `void Ok()` — prints `OK`.
-- `void Nil()` — prints `(nil)` for `no answer`.
-- `void Int(long long n)` — prints an integer.
-- `void Bulk(const std::string& s)` — prints a single string.
-- `void Array(const std::vector<std::string>& items)` — prints a list of strings.
-- `void Error(const std::string& msg)` — prints an error to `stderr`.
+- `void Ok()` - prints `OK`.
+- `void Nil()` - prints `(nil)` for `no answer`.
+- `void Int(long long n)` - prints an integer.
+- `void Bulk(const std::string& s)` - prints a single string.
+- `void Array(const std::vector<std::string>& items)` - prints a list of strings.
+- `void Error(const std::string& msg)` - prints an error to `stderr`.
 
 **Responsibility:** know the exact output format. If the format changes
 (for example, we switch to RESP), only this class needed changes.
