@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GeoHelpers.hpp"
-#include "../Context.hpp"
+#include "commands/Context.hpp"
+#include "commands/ICommand.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -92,28 +92,28 @@ inline SearchArguments ParseSearchTail(Context& ctx, size_t tail_start) {
 
 // FilterByRadius
 inline std::vector<std::string> RunSearch(const Storage::GeoType& points, const SearchArguments& args) {
-    std::vector<std::pair<double, std::string>> hits;
-    hits.reserve(points.size());
+    std::vector<std::pair<double, std::string>> res;
+    res.reserve(points.size());
 
     for (auto& p : points) {
-        double d = HaversineKm(args.lat, args.lon, p.latitude, p.longitude);
-        if (d <= args.radius_km) hits.emplace_back(d, p.member);
+        double d = CalculateDistance(args.lat, args.lon, p.latitude, p.longitude);
+        if (d <= args.radius_km) res.emplace_back(d, p.member);
     }
 
     if (args.has_sort) {
-        std::sort(hits.begin(), hits.end(),
+        std::sort(res.begin(), res.end(),
             [asc = args.asc](const auto& a, const auto& b) {
                 return asc ? a.first < b.first : a.first > b.first;
             });
     }
 
-    if (args.has_count && static_cast<long long>(hits.size()) > args.count) {
-        hits.resize(static_cast<std::size_t>(args.count));
+    if (args.has_count && static_cast<long long>(res.size()) > args.count) {
+        res.resize(static_cast<std::size_t>(args.count));
     }
 
     std::vector<std::string> out;
-    out.reserve(hits.size());
-    for (auto& [_, m] : hits) out.push_back(std::move(m));
+    out.reserve(res.size());
+    for (auto& [_, m] : res) out.push_back(std::move(m));
     return out;
 }
 

@@ -1,7 +1,7 @@
 #pragma once 
 
-#include "../storage/MemoryManager.hpp"
-#include "../storage/StorageEngine.hpp"
+#include "storage/MemoryManager.hpp"
+#include "storage/StorageEngine.hpp"
 #include "CommandException.hpp"
 #include "IResponse.hpp"
 

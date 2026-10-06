@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Context.hpp"
+#include "commands/Context.hpp"
 
 #include <cmath>
 #include <string>
@@ -11,10 +11,8 @@ inline constexpr double kEarthRadiusKm = 6372.8;
 inline constexpr double kPi = 3.14159265358979323846;
 inline constexpr double kMaxLat = 85.05112878;
 
-// Great-circle distance between two points, in kilometers
-// Haversine formula
-inline double HaversineKm(double lat1, double lon1,
-                          double lat2, double lon2) noexcept {
+// Sphere distance between two points, in kilometers
+inline double CalculateDistance(double lat1, double lon1, double lat2, double lon2) noexcept {
     auto toRad = [](double d) { return d * kPi / 180.0; };
     const double dLat = toRad(lat2 - lat1);
     const double dLon = toRad(lon2 - lon1);

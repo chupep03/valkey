@@ -5,21 +5,21 @@
 #include <string>
 #include <string_view>
 
-#include "../storage/MemoryManager.hpp"
+
+#include "ApplicationException.hpp"
+#include "storage/MemoryManager.hpp"
 
 namespace Application {
 
 struct Options {
     size_t maxmemory = 0;
     bool help_requested = false;
-    bool parse_error = false;
-    std::string error_message;
 };
 
-inline constexpr const char* kUsage =
+inline constexpr const char* kHelpResponse =
     "Usage: valkey [--maxmemory <bytes>]\n"
-    "  --maxmemory accepts suffixes: b, kb, mb, gb (e.g. 64mb).\n"
-    "  0 means no limit (default).\n";
+    "  --maxmemory suffixes: b, kb, mb, gb.\n"
+    "  0 means no limit.\n";
 
 inline Options ParseArgs(int argc, char** argv) {
     Options opts;
@@ -32,25 +32,18 @@ inline Options ParseArgs(int argc, char** argv) {
         }
         else if (arg == "--maxmemory") {
             if (i + 1 >= argc) {
-                opts.parse_error = true;
-                opts.error_message = "--maxmemory requires a value";
-                return opts;
+                throw ParseException("--maxmemory reqires a value");
             }
             std::string value = argv[++i];
             try {
                 opts.maxmemory = Storage::MemoryManager::ParseSizeToBytes(value);
             }
             catch (const std::exception& e) {
-                opts.parse_error = true;
-                opts.error_message =
-                    std::string("bad --maxmemory value: ") + e.what();
-                return opts;
+                throw ParseException("bad --maxmemory value: " + value);
             }
         }
         else {
-            opts.parse_error = true;
-            opts.error_message = "unknown argument: " + std::string(arg);
-            return opts;
+            throw ParseException("unknown argument: " + std::string(arg));
         }
     }
 

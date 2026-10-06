@@ -5,7 +5,7 @@
 #include <string>
 #include <cctype>
 
-#include "OOMException.hpp"
+#include "StorageException.hpp"
 
 namespace Storage {
 
@@ -37,13 +37,13 @@ public:
     }
 
     void Resize(size_t old_size, size_t new_size) {
-        if (!CanAllocate(new_size, old_size)) throw OOMException();
+        if (!CanAllocate(new_size, old_size)) throw OutOfMemoryException();
         if (new_size > old_size) actual_usage_ += (new_size - old_size);
         else if (new_size < old_size) actual_usage_ -= (old_size - new_size);
     }
 
     static size_t ParseSizeToBytes(const std::string& str) {
-        if (str.empty()) throw std::runtime_error("MemoryManager::ParseSizeToBytes: nothing to parse");
+        if (str.empty()) throw ParseException("nothing to parse");
 
         size_t index = 0;
         while (index < str.length() && std::isdigit(static_cast<u_char>(str[index]))) index++;
@@ -53,7 +53,7 @@ public:
         for (char& c : postfix) 
             c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
-        if (number_str.empty()) throw std::runtime_error("MemoryManager::ParseSizeToBytes: number expected");
+        if (number_str.empty()) throw ParseException("number expected");
         size_t number = static_cast<size_t>(std::stoull(number_str));
 
         size_t multiplier = 1;
@@ -61,7 +61,7 @@ public:
         else if (postfix == "KB" || postfix == "K") multiplier = KB;
         else if (postfix == "MB" || postfix == "M") multiplier = MB;
         else if (postfix == "GB" || postfix == "G") multiplier = GB;
-        else throw std::runtime_error("MemoryManager::ParseSizeToBytes: unknown postfix: " + postfix);
+        else throw ParseException("unknown postfix '" + postfix + "'");
 
         return number * multiplier;
     }

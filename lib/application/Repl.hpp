@@ -1,11 +1,11 @@
 #include "ResponseFormatter.hpp"
-#include "../parser/Tokenizer.hpp"
-#include "../commands/CommandReg.hpp"
-#include "../commands/Context.hpp"
-#include "../commands/CommandException.hpp"
-#include "../storage/StorageEngine.hpp"
-#include "../storage/MemoryManager.hpp"
-#include "../storage/OOMException.hpp"
+#include "parser/Tokenizer.hpp"
+#include "commands/CommandReg.hpp"
+#include "commands/Context.hpp"
+#include "commands/CommandException.hpp"
+#include "storage/StorageEngine.hpp"
+#include "storage/MemoryManager.hpp"
+#include "storage/StorageException.hpp"
 
 #include <cctype>
 #include <exception>
@@ -74,7 +74,7 @@ public:
                 cmd->Execute(ctx);
             } catch (const Commands::CommandException& e) {
                 response_.Error(e.what());
-            } catch (const Storage::OOMException& e) {
+            } catch (const Storage::OutOfMemoryException& e) {
                 response_.Error(e.what());
             } catch (const std::exception& e) {
                 response_.Error(std::string("internal error: ") + e.what());

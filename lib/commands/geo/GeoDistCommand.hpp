@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../Context.hpp"
-#include "../ICommand.hpp"
+
+#include "commands/Context.hpp"
+#include "commands/ICommand.hpp"
+
 #include "GeoHelpers.hpp"
 
 #include <string>
@@ -40,13 +42,11 @@ public:
         }
         if (!p1 || !p2) { ctx.Out().Nil(); return; }
 
-        double km = GeoHelpers::HaversineKm(p1->latitude, p1->longitude, p2->latitude, p2->longitude);
+        double km = GeoHelpers::CalculateDistance(p1->latitude, p1->longitude, p2->latitude, p2->longitude);
         double meters = km * 1000.0;
         double value = meters / unit_m;
-
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "%.4f", value);
-        ctx.Out().Bulk(buf);
+        std::string s = std::format("{:.4f}", value);
+        ctx.Out().Bulk(s);
     }
 };
 

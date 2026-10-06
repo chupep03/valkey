@@ -10,7 +10,6 @@ namespace Commands {
 //struct IndexError {};
 //struct SyntaxError {};
 
-
 class CommandException : public std::runtime_error {
 public:
     explicit CommandException(const std::string& msg = "no details") 

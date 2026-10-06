@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../Context.hpp"
-#include "../ICommand.hpp"
+#include "commands/Context.hpp"
+#include "commands/ICommand.hpp"
+
 #include "GeoHelpers.hpp"
 #include "GeoSearchHelpers.hpp"
 

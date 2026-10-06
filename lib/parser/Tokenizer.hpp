@@ -14,7 +14,6 @@ public:
 
         for (char ch : line) {
             switch (ch) {
-    
             case ' ':
             case '\t':
             case '\n':
@@ -27,7 +26,7 @@ public:
                     in_token = false;
                 }
                 break;
-
+                
             default:
                 current.push_back(ch);
                 in_token = true;
