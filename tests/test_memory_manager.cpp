@@ -1,5 +1,5 @@
 #include "storage/MemoryManager.hpp"
-#include "storage/OOMException.hpp"
+#include "storage/StorageException.hpp"
 
 #include <gtest/gtest.h>
 
@@ -39,7 +39,7 @@ TEST(MemoryManager, ResizeRespectsLimit) {
     mm.Resize(512, 1024);
     EXPECT_EQ(mm.GetUsage(), 1024u);
 
-    EXPECT_THROW(mm.Resize(1024, 2048), Storage::OOMException);
+    EXPECT_THROW(mm.Resize(1024, 2048), Storage::OutOfMemoryException);
     EXPECT_EQ(mm.GetUsage(), 1024u);
 }
 
