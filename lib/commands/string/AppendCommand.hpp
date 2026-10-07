@@ -17,25 +17,25 @@ public:
         std::string key(ctx.GetArgumentAsStr(0));
         std::string value(ctx.GetArgumentAsStr(1));
 
-        auto entry = ctx.Storage().Get(key);
-        if(!entry) {
-            // new key
-            long long len = static_cast<long long>(value.length());
-            Storage::Entry fresh{std::move(value)};
-            ctx.Storage().Set(key, std::move(fresh));
-            ctx.Out().Int(len);
-            return;
-        }
+        long long len = static_cast<long long>(value.length());
+        Storage::StringType combined = value;
 
-        auto* s = std::get_if<Storage::StringType>(&entry->value);
-        if (!s) throw WrongTypeError();
+        ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+            if (!current) {
+                return Storage::Entry{std::move(value)};
+            } else {
+                auto* s = std::get_if<Storage::StringType>(&current->value);
+                if (!s) {
+                    throw WrongTypeError();
+                }
+                combined = *s + value;
+                len = static_cast<long long>(combined.size());
+                return current->WithValue(std::move(combined));
+            }
+        });
 
-        Storage::StringType combined = *s + value;
-        long long len = static_cast<long long>(combined.size());
-        // WithValue saves exp_time
-        ctx.Storage().Set(key, entry->WithValue(std::move(combined)));
         ctx.Out().Int(len);
     } 
 };
 
-} // namespace Command 
+} // namespace Commands

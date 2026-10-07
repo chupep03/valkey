@@ -15,7 +15,11 @@ public:
         ctx.RequireArgs(1);
         std::string key(ctx.GetArgumentAsStr(0));
 
-        auto entry = ctx.Storage().Get(key);
+        auto entry = ctx.Storage().Get(key); // locked
+
+        // for read commands when the storage_ shot is taken (Get method),
+        // it makes no difference what happens to it after
+
         if (!entry) {
             ctx.Out().Int(0);
             return;
