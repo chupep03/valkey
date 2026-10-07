@@ -25,9 +25,8 @@ private:
     MemoryManager& mem_manager_;
     mutable std::shared_mutex mtx_;
 
-    // private helpers haven't lockers. Locking in public methods
+    // private helpers haven't lockers. Locking in public methods to avoid deadlock
     
-
     // Doesn't delete expired key
     ConstIterator FindLiveShared(const std::string& key) const {
         auto it = storage_.find(key);
@@ -171,6 +170,33 @@ public:
         std::unique_lock lk(mtx_);
         mem_manager_.Resize(mem_manager_.GetUsage(), 0);
         storage_.clear();
+    }
+
+    template<typename F>
+    bool Do(const std::string& key, F&& f) {
+        std::unique_lock lk(mtx_);
+
+        auto it = FindLiveUnique(key);
+        bool existed = (it != storage_.end());
+        std::shared_ptr<const Entry> current;
+        if (existed) current = it->second;
+        std::optional<Entry> updated = f(std::move(current));
+
+        size_t old_total = existed ? TotalSizeFor(key, *it->second) : 0;
+        size_t new_total = updated ? TotalSizeFor(key, *updated) : 0;
+
+        std::shared_ptr<const Entry> ptr;
+        if (updated) ptr = std::make_shared<const Entry>(std::move(*updated));
+
+        mem_manager_.Resize(old_total, new_total);
+
+        if (ptr) {
+            storage_.insert_or_assign(key, std::move(ptr));
+        } else if (existed) {
+            storage_.erase(it);
+        }
+
+        return existed;
     }
 };
 
