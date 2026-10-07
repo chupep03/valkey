@@ -172,6 +172,7 @@ public:
         storage_.clear();
     }
 
+    // f - lambda `[](std::shared_ptr<const Entry>) -> std::optional<Entry>`
     template<typename F>
     bool Do(const std::string& key, F&& f) {
         std::unique_lock lk(mtx_);
