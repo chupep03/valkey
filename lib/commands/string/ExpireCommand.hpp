@@ -18,23 +18,24 @@ public:
         std::string key(ctx.GetArgumentAsStr(0));
         long long seconds = ctx.GetArgumentAsLLInt(1);
 
-        auto entry = ctx.Storage().Get(key);
-        if (!entry) {
-            ctx.Out().Int(0);
-            return;
-        }
-
-        if (seconds <= 0) {
-            ctx.Storage().Remove(std::vector<std::string>{key});
-            ctx.Out().Int(1);
-            return;
-        }
-
+        int result = 0;
         auto exp = std::chrono::system_clock::now() + std::chrono::seconds{seconds};
-        Storage::Entry updated{entry->value, exp};
-        ctx.Storage().Set(key, std::move(updated));
-        ctx.Out().Int(1);
+
+        ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+            if (!current) {
+                result = 0;
+                return std::nullopt;
+            } 
+            if (seconds <= 0) {
+                result = 1;
+                return std::nullopt;
+            } 
+            result = 1;
+            return Storage::Entry{current->value, exp};
+        });
+
+        ctx.Out().Int(result);
     }
 }; 
 
-} // namespace Command 
+} // namespace Commands

@@ -10,7 +10,7 @@
 namespace Commands {
 
 // LINSERT key BEFORE|AFTER pivot value
-// Inserts value before or after the first occurrence of pivot
+// Inserts value before or after the first pivot
 // If pivot is not found -> -1. If key is missing -> 0
 // Otherwise -> new length. Wrong type -> WRONGTYPE
 class LInsertCommand : public ICommand {
@@ -30,27 +30,27 @@ public:
         const bool before = (where == "BEFORE");
         if (!before && where != "AFTER") throw SyntaxError("syntax error");
 
-        auto entry = ctx.Storage().Get(key);
-        if (!entry) {
-            ctx.Out().Int(0);
-            return;
-        }
+        int result = 0;
 
-        auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw WrongTypeError();
-
-        Storage::ListType list = *existing;
-        auto it = std::find(list.begin(), list.end(), pivot);
-        if (it == list.end()) {
-            ctx.Out().Int(-1);
-            return;
-        }
-        if (!before) ++it;
-        list.insert(it, std::move(value));
-
-        long long len = static_cast<long long>(list.size());
-        ctx.Storage().Set(key, entry->WithValue(std::move(list)));
-        ctx.Out().Int(len);
+        ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+            if (!current) {
+                result = 0;
+                return std::nullopt;
+            }
+            auto* existing = std::get_if<Storage::ListType>(&current->value);
+            if (!existing) throw WrongTypeError();
+            Storage::ListType list = *existing;
+            auto it = std::find(list.begin(), list.end(), pivot);
+            if (it == list.end()) {
+                result = -1;
+                return current->WithValue(std::move(list));
+            }
+            if (!before) it++;
+            list.insert(it, std::move(value));
+            result = static_cast<long long>(list.size());
+            return current->WithValue(std::move(list));
+        });
+        ctx.Out().Int(result);
     }
 };
 

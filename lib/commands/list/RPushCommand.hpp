@@ -3,43 +3,42 @@
 #include "commands/Context.hpp"
 #include "commands/ICommand.hpp"
 
+#include <memory>
+#include <optional>
+#include <string>
 #include <variant>
 
 namespace Commands {
 
-// LPUSH key value [value...] 
-// LPUSH k1 a b c
-// One-by-time push
+// RPUSH key value [value...]
+// Appends values to the tail of the list. Creates the key if missing
+// Preserves TTL of an existing key
+// Returns new length. Wrong type -> WRONGTYPE
 class RPushCommand : public ICommand {
 public:
-    void Execute(Context& ctx) {
+    void Execute(Context& ctx) override {
         ctx.RequireMinArgs(2);
         std::string key(ctx.GetArgumentAsStr(0));
 
-        auto entry = ctx.Storage().Get(key);
-        if (!entry) {
-            Storage::ListType list;
-            for (size_t i = 1; i < ctx.GetArgsCount(); i++) {
-                list.push_back(std::string(ctx.GetArgumentAsStr(i)));
-            }
-            
-            long long len = static_cast<long long>(list.size());
-            Storage::Entry fresh{std::move(list)};
-            ctx.Storage().Set(key, std::move(fresh));
-            ctx.Out().Int(len);
-            return;
-        }
-        auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw WrongTypeError();
+        long long len = 0;
 
-        Storage::ListType list = *existing;
-        for (std::size_t i = 1; i < ctx.GetArgsCount(); i++) {
-            list.push_back(std::string(ctx.GetArgumentAsStr(i)));
-            //std::cout << std::string(ctx.GetArgumentAsStr(i)) << "\n";
-        }
+        ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+                Storage::ListType list = {};
+                if (current) {
+                    auto* existing = std::get_if<Storage::ListType>(&current->value);
+                    if (!existing) throw WrongTypeError();
+                    list = *existing;
+                }
 
-        long long len = static_cast<long long>(list.size());
-        ctx.Storage().Set(key, entry->WithValue(std::move(list)));
+                for (std::size_t i = 1; i < ctx.GetArgsCount(); i++) {
+                    list.push_back(std::string(ctx.GetArgumentAsStr(i)));
+                }
+
+                len = static_cast<long long>(list.size());
+                if (current) return current->WithValue(std::move(list));
+                return Storage::Entry{std::move(list)};
+            });
+
         ctx.Out().Int(len);
     }
 };

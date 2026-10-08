@@ -39,7 +39,7 @@ public:
                 throw CommandException(std::string("bad maxmemory value: ") + e.what());
             }
             try {
-                ctx.Memory().SetLimit(bytes);
+                ctx.Storage().SetMaxMemory(bytes);
             } catch (const std::invalid_argument& e) {
                 throw CommandException(e.what());
             }
