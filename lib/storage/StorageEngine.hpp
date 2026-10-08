@@ -13,6 +13,12 @@
 
 namespace Storage {
 
+enum class SMoveStatus {
+    Moved,       // member was in src, moved to dst - int(1)
+    NotAMember,  // src missing, or member not in src - int(0)
+    WrongType,
+};
+
 class StorageEngine {
 private:
     using StorageMap =
@@ -188,7 +194,6 @@ public:
 
         std::shared_ptr<const Entry> ptr;
         if (updated) ptr = std::make_shared<const Entry>(std::move(*updated));
-
         mem_manager_.Resize(old_total, new_total);
 
         if (ptr) {
@@ -199,6 +204,73 @@ public:
 
         return existed;
     }
+
+
+    SMoveStatus SMove(const std::string& src_key, const std::string& dst_key, const std::string& member) {
+        std::unique_lock lk(mtx_);
+
+        if (src_key == dst_key) {
+            auto it = FindLiveUnique(src_key);
+            if (it == storage_.end()) return SMoveStatus::NotAMember;
+            auto* s = std::get_if<SetType>(&it->second->value);
+            if (!s) return SMoveStatus::WrongType;
+            return s->count(member) ? SMoveStatus::Moved : SMoveStatus::NotAMember;
+        }
+
+        auto src_it = FindLiveUnique(src_key);
+        auto dst_it = FindLiveUnique(dst_key);
+
+        // src checks
+        if (src_it == storage_.end()) return SMoveStatus::NotAMember;
+        auto* src = std::get_if<SetType>(&src_it->second->value);
+        if (!src) return SMoveStatus::WrongType;
+        if (src->count(member) == 0) return SMoveStatus::NotAMember;
+
+        // dst checks
+        const SetType* dst = nullptr;
+        if (dst_it != storage_.end()) {
+            dst = std::get_if<SetType>(&dst_it->second->value);
+            if (!dst) return SMoveStatus::WrongType;
+        }
+
+        // new src
+        SetType new_src = *src;
+        new_src.erase(member);
+        std::optional<Entry> new_src_entry;
+        if (!new_src.empty()) {
+            new_src_entry.emplace(src_it->second->WithValue(std::move(new_src)));
+        }
+
+        // new dst
+        SetType new_dst = dst ? *dst : SetType{};
+        new_dst.insert(member);
+        Entry new_dst_entry{std::move(new_dst)};
+
+        // old sizes valuation
+        size_t old_src_total = TotalSizeFor(src_key, *src_it->second);
+        size_t old_dst_total = 0;
+        if (dst_it != storage_.end()) old_dst_total = TotalSizeFor(dst_key, *dst_it->second);
+
+        // new sizes valuation
+        size_t new_src_total = 0;
+        if (new_src_entry) new_src_total = TotalSizeFor(src_key, *new_src_entry);
+        size_t new_dst_total = TotalSizeFor(dst_key, new_dst_entry);
+
+        mem_manager_.Resize(old_src_total + old_dst_total, new_src_total + new_dst_total);
+
+        if (new_src_entry) {
+            storage_.insert_or_assign(src_key,
+                std::make_shared<const Entry>(std::move(*new_src_entry)));
+        } else {
+            storage_.erase(src_key);
+        }
+        storage_.insert_or_assign(dst_key,
+            std::make_shared<const Entry>(std::move(new_dst_entry)));
+
+        return SMoveStatus::Moved;
+    }
 };
+
+
 
 } // namespace Storage

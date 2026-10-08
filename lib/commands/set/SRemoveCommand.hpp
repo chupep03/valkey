@@ -12,31 +12,35 @@ namespace Commands {
 // SREM key member [member ...]
 // Removes one or more members from a set
 // Missing members are ignored and not counted
-// Replies with Int(number removed). Wrong type -> WRONGTYPE
+// Replies with Int(number of removed). Wrong type -> WRONGTYPE
 class SRemoveCommand : public ICommand {
 public:
     void Execute(Context& ctx) override {
         ctx.RequireMinArgs(2);
         std::string key(ctx.GetArgumentAsStr(0));
-        auto entry = ctx.Storage().Get(key);
-        size_t removed = 0;
 
-        if (!entry) {
-            ctx.Out().Int(0);
-            return;
-        }
-        auto* existing = std::get_if<Storage::SetType>(&entry->value);
-        if (!existing) WrongTypeError();
-        Storage::SetType set = *existing;
+        long long removed = 0;
 
-        for (size_t i = 0; i < ctx.GetArgsCount(); i++)
-            removed += static_cast<long long>(set.erase(std::string(ctx.GetArgumentAsStr(i))));
-        
-        if (set.empty()) {
-            ctx.Storage().Remove(std::vector<std::string>{key});
-        } else {
-            ctx.Storage().Set(key, entry->WithValue(std::move(set)));
-        }
+        ctx.Storage().Do(key,
+            [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+                if (!current) {
+                    removed = 0;
+                    return std::nullopt;
+                }
+
+                auto* existing = std::get_if<Storage::SetType>(&current->value);
+                if (!existing) throw WrongTypeError();
+                Storage::SetType set = *existing;
+
+                for (std::size_t i = 1; i < ctx.GetArgsCount(); ++i) {
+                    removed += static_cast<long long>(
+                        set.erase(std::string(ctx.GetArgumentAsStr(i))));
+                }
+
+                if (set.empty()) return std::nullopt; 
+                return current->WithValue(std::move(set));
+            });
+
         ctx.Out().Int(removed);
     }
 };
