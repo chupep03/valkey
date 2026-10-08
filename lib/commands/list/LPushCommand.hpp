@@ -29,16 +29,26 @@ public:
             ctx.Out().Int(len);
             return;
         }
-        auto* existing = std::get_if<Storage::ListType>(&entry->value);
-        if (!existing) throw WrongTypeError();
 
-        Storage::ListType list = *existing;
-        for (std::size_t i = 1; i < ctx.GetArgsCount(); ++i) {
-            list.push_front(std::string(ctx.GetArgumentAsStr(i)));
-        }
+        long long len = 0;
 
-        long long len = static_cast<long long>(list.size());
-        ctx.Storage().Set(key, entry->WithValue(std::move(list)));
+        ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
+            Storage::ListType list = {};
+            if (current) {
+                auto* existing = std::get_if<Storage::ListType>(&current->value);
+                if (!existing) throw WrongTypeError();
+                list = *existing;
+            }
+
+            for (std::size_t i = 1; i < ctx.GetArgsCount(); i++) {
+                list.push_front(std::string(ctx.GetArgumentAsStr(i)));
+            }
+
+            len = static_cast<long long>(list.size());
+            if (current) return current->WithValue(std::move(list));
+            return Storage::Entry{std::move(list)};
+        });
+
         ctx.Out().Int(len);
     }
 };
