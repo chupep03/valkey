@@ -91,13 +91,15 @@ inline SearchArguments ParseSearchTail(Context& ctx, size_t tail_start) {
 }
 
 // FilterByRadius
-inline std::vector<std::string> RunSearch(const Storage::GeoType& points, const SearchArguments& args) {
-    std::vector<std::pair<double, std::string>> res;
+inline std::vector<const Storage::GeoPoint*> RunSearch(
+    const Storage::GeoType& points, const SearchArguments& args)
+{
+    std::vector<std::pair<double, const Storage::GeoPoint*>> res;
     res.reserve(points.size());
 
-    for (auto& p : points) {
+    for (const auto& p : points) {
         double d = CalculateDistance(args.lat, args.lon, p.latitude, p.longitude);
-        if (d <= args.radius_km) res.emplace_back(d, p.member);
+        if (d <= args.radius_km) res.emplace_back(d, &p);
     }
 
     if (args.has_sort) {
@@ -111,9 +113,9 @@ inline std::vector<std::string> RunSearch(const Storage::GeoType& points, const 
         res.resize(static_cast<std::size_t>(args.count));
     }
 
-    std::vector<std::string> out;
+    std::vector<const Storage::GeoPoint*> out;
     out.reserve(res.size());
-    for (auto& [_, m] : res) out.push_back(std::move(m));
+    for (auto& [_, p] : res) out.push_back(p);
     return out;
 }
 
