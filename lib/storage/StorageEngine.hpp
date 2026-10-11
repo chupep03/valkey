@@ -13,11 +13,17 @@
 
 namespace Storage {
 
-enum class SMoveStatus {
-    Moved,       // member was in src, moved to dst - int(1)
-    NotAMember,  // src missing, or member not in src - int(0)
-    WrongType,
-};
+// for DoMulti
+using EntryPtr = std::shared_ptr<const Entry>;
+
+template <size_t N>
+using EntryPtrArray = std::array<EntryPtr, N>;
+
+struct Skip   {};   // leave key at the current state
+struct Delete {};   // rm key
+using KeyMutation = std::variant<Skip, Delete, Entry>;
+
+
 
 class StorageEngine {
 private:
@@ -72,7 +78,7 @@ private:
 
         while (s < str.size()) {
             // solo simbol match
-            if (p < pattern.size() &&
+            if  (p < pattern.size() &&
                 (pattern[p] == '?' || pattern[p] == str[s])) {
                 ++s; ++p;
             // * start
@@ -95,6 +101,7 @@ private:
 public:
     explicit StorageEngine(MemoryManager& mm)
         : mem_manager_(mm) {}
+
 
     std::shared_ptr<const Entry> Get(const std::string& key) {
         std::shared_lock lk(mtx_);
@@ -142,6 +149,11 @@ public:
     size_t TotalMemory() const {
         std::shared_lock lk(mtx_);
         return mem_manager_.GetUsage();
+    }
+
+    size_t GetMaxMemory() const {
+        std::shared_lock lk(mtx_);
+        return mem_manager_.GetLimit();
     }
 
     void Set(const std::string& key, Entry entry) {
@@ -205,70 +217,71 @@ public:
         return existed;
     }
 
+    // keys must be different
+    // at least 1 key
+    template <typename F, typename... Keys>
+    void DoMulti(F&& f, const Keys&... keys) {
+        static_assert(sizeof...(Keys) >= 1);
+        constexpr size_t N = sizeof...(Keys);
 
-    SMoveStatus SMove(const std::string& src_key, const std::string& dst_key, const std::string& member) {
         std::unique_lock lk(mtx_);
 
-        if (src_key == dst_key) {
-            auto it = FindLiveUnique(src_key);
-            if (it == storage_.end()) return SMoveStatus::NotAMember;
-            auto* s = std::get_if<SetType>(&it->second->value);
-            if (!s) return SMoveStatus::WrongType;
-            return s->count(member) ? SMoveStatus::Moved : SMoveStatus::NotAMember;
+        std::array<std::string, N> keys_array{std::string(keys)...};
+        std::array<Iterator, N> its;
+        std::array<bool, N> key_exist{false};
+        EntryPtrArray<N> currents{nullptr};
+
+        for (std::size_t i = 0; i < N; ++i) {
+            its[i] = FindLiveUnique(keys_array[i]);
+            if (its[i] != storage_.end()) key_exist[i] = true;
+            if (key_exist[i]) currents[i] = its[i]->second;
         }
 
-        auto src_it = FindLiveUnique(src_key);
-        auto dst_it = FindLiveUnique(dst_key);
+        std::array<KeyMutation, N> mutations = f(currents);
 
-        // src checks
-        if (src_it == storage_.end()) return SMoveStatus::NotAMember;
-        auto* src = std::get_if<SetType>(&src_it->second->value);
-        if (!src) return SMoveStatus::WrongType;
-        if (src->count(member) == 0) return SMoveStatus::NotAMember;
+        std::size_t old_total = 0;
+        std::size_t new_total = 0;
+        std::array<bool, N> to_write{};
+        std::array<bool, N> to_delete{};
 
-        // dst checks
-        const SetType* dst = nullptr;
-        if (dst_it != storage_.end()) {
-            dst = std::get_if<SetType>(&dst_it->second->value);
-            if (!dst) return SMoveStatus::WrongType;
+
+        for (std::size_t i = 0; i < N; i++) {
+            if (key_exist[i]) old_total += TotalSizeFor(keys_array[i], *its[i]->second);
+            auto& m = mutations[i];
+
+            std::visit(
+                Overloaded{
+                [&](const Skip&) {
+                    if (key_exist[i]) new_total += TotalSizeFor(keys_array[i], *its[i]->second);
+                },
+                [&](const Delete&) {
+                    if (key_exist[i]) to_delete[i] = true;
+                },
+                [&](const Entry& e) {
+                    new_total += TotalSizeFor(keys_array[i], e);
+                    to_write[i] = true;
+                }}, m
+            );
         }
 
-        // new src
-        SetType new_src = *src;
-        new_src.erase(member);
-        std::optional<Entry> new_src_entry;
-        if (!new_src.empty()) {
-            new_src_entry.emplace(src_it->second->WithValue(std::move(new_src)));
+        EntryPtrArray<N> new_ptrs;
+        for (std::size_t i = 0; i < N; i++) {
+            if (to_write[i]) {
+                new_ptrs[i] = std::make_shared<const Entry>(
+                    std::move(std::get<Entry>(mutations[i])));
+            }
         }
 
-        // new dst
-        SetType new_dst = dst ? *dst : SetType{};
-        new_dst.insert(member);
-        Entry new_dst_entry{std::move(new_dst)};
-
-        // old sizes valuation
-        size_t old_src_total = TotalSizeFor(src_key, *src_it->second);
-        size_t old_dst_total = 0;
-        if (dst_it != storage_.end()) old_dst_total = TotalSizeFor(dst_key, *dst_it->second);
-
-        // new sizes valuation
-        size_t new_src_total = 0;
-        if (new_src_entry) new_src_total = TotalSizeFor(src_key, *new_src_entry);
-        size_t new_dst_total = TotalSizeFor(dst_key, new_dst_entry);
-
-        mem_manager_.Resize(old_src_total + old_dst_total, new_src_total + new_dst_total);
-
-        if (new_src_entry) {
-            storage_.insert_or_assign(src_key,
-                std::make_shared<const Entry>(std::move(*new_src_entry)));
-        } else {
-            storage_.erase(src_key);
+        mem_manager_.Resize(old_total, new_total);
+        for (std::size_t i = 0; i < N; ++i) {
+            if (to_write[i]) {
+                storage_.insert_or_assign(keys_array[i], std::move(new_ptrs[i]));
+            } else if (to_delete[i]) {
+                storage_.erase(keys_array[i]);
+            }
         }
-        storage_.insert_or_assign(dst_key,
-            std::make_shared<const Entry>(std::move(new_dst_entry)));
-
-        return SMoveStatus::Moved;
     }
+    
 };
 
 
