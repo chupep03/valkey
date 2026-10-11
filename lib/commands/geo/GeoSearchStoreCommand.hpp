@@ -55,7 +55,7 @@ public:
                     result[1] = Storage::Delete{};
                     return result;
                 }
-                
+
                 Storage::SetType members;
                 members.reserve(filtered.size());
                 for (const auto* p : filtered) {
