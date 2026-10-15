@@ -24,7 +24,7 @@ Dependencies go one way:
 
 ### `ValueVariant` (header `ValueVariant.hpp`)
 
-Not a class, but a set of type aliases that define what a value can be.
+Set of type aliases that define what a value can be.
 
 **Atomic Aliases:**
 
@@ -41,7 +41,7 @@ Not a class, but a set of type aliases that define what a value can be.
 This is the single source of info about which value types the database
 supports. Adding a new type is adding it here.
 
-**Responsibility:** define the types. No logic.
+**Responsibility:** define the types.
 
 **Not responsible for:** any operations on the values. Those live in
 commands and in `Entry`.
@@ -110,8 +110,7 @@ limit.
 **Not responsible for:**
 
 - Knowing what the memory is used for. No keys, no values.
-- Building error messages. It throws; the caller formats the text.
-- Being thread-safe yet. When we add multi-threading, `actual_usage_` becomes `std::atomic<size_t>` and `Resize` becomes one atomic step.
+- Without MT.
 
 ---
 
