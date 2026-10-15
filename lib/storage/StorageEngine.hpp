@@ -190,6 +190,16 @@ public:
         storage_.clear();
     }
 
+    // check total = sum invariant for tests
+    size_t RealTotal() const {
+        std::shared_lock lk(mtx_);
+        size_t total = 0;
+        for (const auto& [key, ptr] : storage_) {
+            total += key.size() + ptr->GetMemoryUsage();
+        }
+        return total;
+    }
+
     // f - lambda `[](std::shared_ptr<const Entry>) -> std::optional<Entry>`
     template<typename F>
     bool Do(const std::string& key, F&& f) {

@@ -585,3 +585,43 @@ TEST(StressMT, OomAndRemove) {
     engine.Flush();
     EXPECT_EQ(engine.TotalMemory(), 0);
 }
+
+TEST(StressMT, ManyThreadsSmallOps) {
+    MemoryManager mm;
+    StorageEngine engine(mm);
+    CommandReg reg;
+    RegisterAll(reg);
+
+    constexpr int kThreads = 32;
+    constexpr int kOperations = 1000;
+    constexpr int kKeySpace = 100;
+
+    std::atomic<int> errors{0};
+    std::vector<std::thread> workers;
+    workers.reserve(kThreads);
+
+    for (int t = 0; t < kThreads; t++) {
+        workers.emplace_back([&, t]() {
+            Worker w(engine, mm, reg);
+            for (int i = 0; i < kOperations; i++) {
+                std::string key = "k" + std::to_string(i % kKeySpace);
+                w.out.Clear();
+                w.Run("SET", {key, "v"});
+
+                w.out.Clear();
+                w.Run("GET", {key});
+                if (w.out.Last().kind != Tests::FakeResponse::Kind::Bulk) {
+                    errors.fetch_add(1);
+                }
+            }
+        });
+    }
+    for (auto& th : workers) th.join();
+
+    EXPECT_EQ(errors.load(), 0);
+    EXPECT_EQ(engine.TotalMemory(), engine.RealTotal());
+
+    Worker check(engine, mm, reg);
+    check.Run("DBSIZE", {});
+    EXPECT_EQ(check.out.Last().integer, kKeySpace);
+}
