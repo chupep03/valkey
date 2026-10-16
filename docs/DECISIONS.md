@@ -1,90 +1,122 @@
 # Design Decisions
 
-Short log of decisions. Goal: not re-deciding the same thing every week.
-Newest on top. Numbers are permanent — do not renumber.
+Short list of decisions. Newest on top. Numbers are permanent.
 
 ---
 
-## `SetType` is `std::unordered_set<std::string>`
+## MT strategy — one shared_mutex inside StorageEngine
 
 **Decision**
 
-The value type for sets is `std::unordered_set<std::string>`.
-Order of returned elements in `SMEMBERS` / `SUNION` / `SINTER` /
-`SDIFF` is not guaranteed.
+`StorageEngine` owns a single `shared_mutex mtx_`. It protects
+both `storage_` and `mem_manager_`. Readers under `shared_lock`, writers
+under `unique_lock`. `MemoryManager` has no lock of its own, because every
+access to it goes through `StorageEngine`.
 
 **Why**
 
-- valkey.io docs say the order is unspecified for these commands.
+- Simple model. No lock ordering.
+- `Entry` is immutable and `Get` returns `shared_ptr<const Entry>`,
+  so readers never see dead values.
 
 **Consequences**
 
-- Set-command tests must compare as a set, not as a list.
-- If a specific order is later required, new type may be added.
+- Commands must not call `MemoryManager` directly; use
+  `StorageEngine::SetMaxMemory` / `GetMaxMemory`.
+- `Size`, `GetAllKeysByPattern`, `Flush`, `Remove`, `Set`, `Do`,
+  `DoMulti` take `unique_lock`.
+- `Get`, `Exist`, `GetMemUsage`, `TotalMemory`, `GetMaxMemory` take
+  `shared_lock`.
 
 ---
 
-## `StorageEngine::Get` returns `std::shared_ptr<const Entry>`
+## Mutating commands goes through Do / DoMulti
 
-### Decision
+**Decision**
 
-`Get` returns `std::shared_ptr<const Entry>` (or `nullptr` if the key
-is missing or expired). The internal map becomes:
+Mutating commands do not call `Get` + `Set` any longer. They call
+`StorageEngine::Do(key, fn)`, or `DoMulti(fn, keys...)` for
+several. Both take a `unique_lock` for the whole read-modify-write.
 
-    std::unordered_map<std::string, std::shared_ptr<const Entry>>
+**Why**
 
-`Entry` is immutable after construction. All mutations go through
-copy-on-write: build a new `Entry`, call `Set`, let the old one destruct.
+- `Get` + `Set` is not atomic: between them another thread can change
+  the data.
+- Simple extensibility.
 
-### Why
+**Consequences**
 
-- Safe under multi-threading: readers keep the entry alive and immutable
-- No copies of the value itself - only an atomic refcount.
-- Only option that will not need rewriting when MT will be added.
+- `SMOVE` and `GEOSEARCHSTORE` use `DoMulti` with two distinct keys.
+- Lambdas passed to `Do` / `DoMulti` must not touch `storage` or write
+  the reply. They only read `current`.
 
-### Consequences
+---
 
-- `Entry*` and `Entry&` never leak out of `StorageEngine` again.
-- Commands that used to mutate in place now build a new `Entry` and `Set` it. More code,  but less bugs.
-- `Set` allocates a `shared_ptr` per write.
-- `Entry` must stay immutable after construction.
+## Commands and Context are stateless
+
+**Decision**
+
+A command object has no mutable member state. All per-call data lives
+in `Context`, created fresh per line and destroyed after `Execute`.
+
+**Why**
+
+- MT. One command instance can serve many threads safely.
+
+**Consequences**
+
+- No member variables in command classes.
+- `main/resp` does not reset anything between lines.
 
 ---
 
 ## Response formatter is not a singleton
 
-**Status:** accepted
+**Decision**
 
-### Decision**
+`IResponse` is passed to commands through `Context`.
 
-`IResponse` is passed to commands through `Context`. No global
-`std::cout` access inside commands.
+**Why**
 
-### Why
+- Each TCP connection needs its own output buffer.
+- Easy to test: fake response formatter.
 
-- TCP frontend with many connections. Each connection needs its own output buffer.
-- Easy testing: pass a fake formatter that records strings.
+**Consequences**
 
-### Consequences
-
-- `Context` holds `IResponse& out`.
-- Commands never touch `std::cout` directly.
+- Commands never touch outstreams.
+- `Context` holds `IResponse&`.
 
 ---
 
-## Commands and `Context` are stateless between calls
+## SetType is std::unordered_set<std::string>
 
-### Decision
+**Decision**
 
-A command object has no mutable member state. Everything per call goes
-through `Context`, which is created fresh for each input line and
-deconstructed after that.
+Order in `SMEMBERS` / `SUNION` / `SINTER` / `SDIFF` is not guaranteed.
 
-### Why
+**Why**
 
-- MT. Stateless commands can be reused by many threads safely.
+- valkey.io docs say the order is unspecified, so thats the best option.
 
-### Consequences
+**Consequences**
 
-- No member variables in command classes (compile-time constants are fine).
+- Set tests compare as a set, not as a list.
 
+---
+
+## Get returns std::shared_ptr<const Entry>
+
+**Decision**
+
+Map is `unordered_map<string, shared_ptr<const Entry>>`. `Entry` is
+immutable, mutations go through copy-on-write.
+
+**Why**
+
+- Safe under MT: readers keep the entry alive after removal.
+- No copies of the value, only an atomic refcount.
+
+**Consequences**
+
+- No `Entry*` / `Entry&` leaks from `StorageEngine`.
+- `Set` allocates a `shared_ptr` per write.
