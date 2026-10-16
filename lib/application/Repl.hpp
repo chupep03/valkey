@@ -76,6 +76,8 @@ public:
                 response_.Error(e.what());
             } catch (const Storage::OutOfMemoryException& e) {
                 response_.Error(e.what());
+            } catch (const Storage::ParseException& e) {
+                response_.Error(e.what());
             } catch (const std::exception& e) {
                 response_.Error(std::string("internal error: ") + e.what());
             }
