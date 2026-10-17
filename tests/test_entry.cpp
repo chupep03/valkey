@@ -34,7 +34,7 @@ TEST(Entry, WithValueKeepsTtl) {
     Entry e{StringType{"old"}, future};
     Entry e2 = e.WithValue(StringType{"new"});
 
-    EXPECT_TRUE(e2.exp_time.has_value());
-    EXPECT_EQ(e2.exp_time.value(), future);
-    EXPECT_EQ(std::get<StringType>(e2.value), "new");
+    EXPECT_TRUE(e2.GetExpTime().has_value());
+    EXPECT_EQ(e2.GetExpTime().value(), future);
+    EXPECT_EQ(std::get<StringType>(e2.GetValue()), "new");
 }

@@ -20,7 +20,7 @@ TEST(StorageEngine, SetGet) {
     e.Set("key", MakeString("hello"));
     auto got = e.Get("key");
     ASSERT_TRUE(got);
-    EXPECT_EQ(std::get<StringType>(got->value), "hello");
+    EXPECT_EQ(std::get<StringType>(got->GetValue()), "hello");
 }
 
 TEST(StorageEngine, GetMissingReturnsNull) {
@@ -34,7 +34,7 @@ TEST(StorageEngine, SetReplaces) {
     StorageEngine e(mm);
     e.Set("key", MakeString("a"));
     e.Set("key", MakeString("b"));
-    EXPECT_EQ(std::get<StringType>(e.Get("key")->value), "b");
+    EXPECT_EQ(std::get<StringType>(e.Get("key")->GetValue()), "b");
     EXPECT_EQ(e.Size(), 1u);
 }
 
@@ -69,8 +69,8 @@ TEST(StorageEngine, CoWKeepsOldSharedPtrAlive) {
     auto now = e.Get("key");
 
     ASSERT_TRUE(old);
-    EXPECT_EQ(std::get<StringType>(old->value), "old");
-    EXPECT_EQ(std::get<StringType>(now->value), "new");
+    EXPECT_EQ(std::get<StringType>(old->GetValue()), "old");
+    EXPECT_EQ(std::get<StringType>(now->GetValue()), "new");
 }
 
 TEST(StorageEngine, MemoryAccountingRoundTrip) {
