@@ -30,7 +30,7 @@ public:
         cmd_name_(cmd_name), args_(args), storage_(storage), mm_(mm), out_(out) {}
 
     ArgsType& Args() {return args_;}
-    size_t GetArgsCount() {return args_.size();}
+    size_t GetArgsCount() const {return args_.size();}
 
     std::string_view GetArgumentAsStr(std::size_t i) const {
         if (i >= args_.size()) {
@@ -56,14 +56,16 @@ public:
         auto [ptr, ec] = std::from_chars(
             sv.data(), sv.data() + sv.size(), value);
         if (ec != std::errc{} || ptr != sv.data() + sv.size()) {
-            throw WrongTypeError{};;
+            throw WrongTypeError{};
         }
         return value;
     }
 
-    void RequireArgs(size_t n) {if (args_.size() != n) throw ArgsError("RequireArgs");}
+
+    void RequireArgs(size_t n) const {if (args_.size() != n) throw ArgsError("RequireArgs");}
     void RequireMinArgs(size_t n) const {if (args_.size() < n) throw ArgsError("RequireMinArgs");}
 
+    std::string GetCmdName() const {return cmd_name_;}
     Storage::StorageEngine& Storage() noexcept { return storage_;}
     Storage::MemoryManager& Memory() noexcept { return mm_; }
     IResponse& Out() noexcept { return out_; }
