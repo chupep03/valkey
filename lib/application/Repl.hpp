@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ResponseFormatter.hpp"
 #include "parser/Tokenizer.hpp"
 #include "commands/CommandReg.hpp"
@@ -74,9 +76,9 @@ public:
                 cmd->Execute(ctx);
             } catch (const Commands::CommandException& e) {
                 response_.Error(e.what());
-            } catch (const Storage::OutOfMemoryException& e) {
+            } catch (const Storage::StorageException& e) {
                 response_.Error(e.what());
-            } catch (const Storage::ParseException& e) {
+            } catch (const Application::ApplicationException& e) {
                 response_.Error(e.what());
             } catch (const std::exception& e) {
                 response_.Error(std::string("internal error: ") + e.what());

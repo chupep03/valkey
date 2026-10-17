@@ -1,22 +1,23 @@
 #pragma once
 
 #include <stdexcept>
+#include <string>
 
 namespace Storage {
 
 class StorageException : public std::runtime_error {
 public:    
-    explicit StorageException(const std::string& msg = "no details") : std::runtime_error("StorageException: " + msg) {} 
+    explicit StorageException(const std::string& msg = "no details") : std::runtime_error(msg) {} 
 };
 
-class OutOfMemoryException : public std::runtime_error {
+class OutOfMemoryException : public StorageException {
 public:
-    explicit OutOfMemoryException(const std::string& msg = "no details") : std::runtime_error("OOMException: " + msg) {}
+    explicit OutOfMemoryException(const std::string& msg = "no details") : StorageException("OOMException: " + msg) {}
 };
 
-class ParseException : public std::runtime_error {
+class ParseException : public StorageException {
 public:
-    explicit ParseException(const std::string& msg = "no details") : std::runtime_error("ParseException: " + msg) {}
+    explicit ParseException(const std::string& msg = "no details") : StorageException("ParseException: " + msg) {}
 };
 
-} // namespace Storage"
+} // namespace Storage
