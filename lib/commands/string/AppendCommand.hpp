@@ -24,7 +24,7 @@ public:
             if (!current) {
                 return Storage::Entry{std::move(value)};
             } else {
-                auto* s = std::get_if<Storage::StringType>(&current->value);
+                auto* s = std::get_if<Storage::StringType>(&current->GetValue());
                 if (!s) {
                     throw WrongTypeError();
                 }

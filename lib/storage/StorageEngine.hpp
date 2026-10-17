@@ -2,6 +2,7 @@
 
 #include "Entry.hpp"
 #include "MemoryManager.hpp"
+#include "Overloaded.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -10,6 +11,10 @@
 #include <vector>
 #include <mutex>
 #include <shared_mutex>
+#include <optional>
+#include <array>
+#include <variant>
+#include <utility>
 
 namespace Storage {
 
@@ -54,6 +59,7 @@ private:
         if (!it->second->IsExpired()) return it;
 
         mem_manager_.Resize(TotalSizeFor(key, *it->second), 0);
+        storage_.erase(it);                                       
         return storage_.end();
     }
 

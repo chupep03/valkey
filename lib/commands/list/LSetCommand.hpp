@@ -24,7 +24,7 @@ public:
 
         ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
                 if (!current) throw CommandException("no such key");
-                auto* existing = std::get_if<Storage::ListType>(&current->value);
+                auto* existing = std::get_if<Storage::ListType>(&current->GetValue());
                 if (!existing) throw WrongTypeError();
 
                 auto norm = NormalizeIndex(index, existing->size());

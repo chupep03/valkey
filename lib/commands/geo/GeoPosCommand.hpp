@@ -30,7 +30,7 @@ public:
             return;
         }
 
-        auto* points = std::get_if<Storage::GeoType>(&entry->value);
+        auto* points = std::get_if<Storage::GeoType>(&entry->GetValue());
         if (!points) throw WrongTypeError();
 
         for (std::size_t i = 1; i < ctx.GetArgsCount(); i++) {

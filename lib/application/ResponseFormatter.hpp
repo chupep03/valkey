@@ -1,8 +1,11 @@
 #pragma once 
 
-#include "../commands/IResponse.hpp"
+#include "commands/IResponse.hpp"
 
 #include <iostream>
+#include <vector>
+#include <string>
+#include <cstddef>
 
 namespace Application {
     

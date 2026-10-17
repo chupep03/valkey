@@ -29,7 +29,7 @@ public:
         ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
                 Storage::GeoType points;
                 if (current) {
-                    auto* p = std::get_if<Storage::GeoType>(&current->value);
+                    auto* p = std::get_if<Storage::GeoType>(&current->GetValue());
                     if (!p) throw WrongTypeError{};
                     points = *p;
                 }

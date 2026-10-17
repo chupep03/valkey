@@ -31,7 +31,7 @@ public:
                 return std::nullopt;
             } 
             result = 1;
-            return Storage::Entry{current->value, exp};
+            return Storage::Entry{current->GetValue(), exp};
         });
 
         ctx.Out().Int(result);

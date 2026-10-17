@@ -37,7 +37,7 @@ public:
                 result = 0;
                 return std::nullopt;
             }
-            auto* existing = std::get_if<Storage::ListType>(&current->value);
+            auto* existing = std::get_if<Storage::ListType>(&current->GetValue());
             if (!existing) throw WrongTypeError();
             Storage::ListType list = *existing;
             auto it = std::find(list.begin(), list.end(), pivot);

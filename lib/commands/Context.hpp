@@ -8,6 +8,7 @@
 #include <vector>
 #include <charconv>
 #include <string>
+#include <cstddef>
 
 namespace Commands {
 

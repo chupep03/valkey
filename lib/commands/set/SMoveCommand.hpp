@@ -25,7 +25,7 @@ public:
         if (src_key == dst_key) {
             auto cur = ctx.Storage().Get(src_key);
             if (!cur) { ctx.Out().Int(0); return; }
-            auto* s = std::get_if<Storage::SetType>(&cur->value);
+            auto* s = std::get_if<Storage::SetType>(&cur->GetValue());
             if (!s) throw WrongTypeError{};
             ctx.Out().Int(s->count(member) ? 1 : 0);
             return;
@@ -39,13 +39,13 @@ public:
 
                 if (!src) return {Storage::Skip{}, Storage::Skip{}};
 
-                auto* s = std::get_if<Storage::SetType>(&src->value);
+                auto* s = std::get_if<Storage::SetType>(&src->GetValue());
                 if (!s) throw WrongTypeError{};
                 if (s->count(member) == 0) return {Storage::Skip{}, Storage::Skip{}};
 
                 const Storage::SetType* d = nullptr;
                 if (dst) {
-                    d = std::get_if<Storage::SetType>(&dst->value);
+                    d = std::get_if<Storage::SetType>(&dst->GetValue());
                     if (!d) throw WrongTypeError{};
                 }
 

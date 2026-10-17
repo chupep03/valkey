@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <cctype>
 
 #include "ICommand.hpp"
 

@@ -34,7 +34,7 @@ public:
         if (count == 0) {
             auto entry = ctx.Storage().Get(key);
             if (entry) {
-                if (!std::get_if<Storage::ListType>(&entry->value))
+                if (!std::get_if<Storage::ListType>(&entry->GetValue()))
                     throw WrongTypeError();
             }
             ctx.Out().Array(std::vector<std::string>{});
@@ -46,7 +46,7 @@ public:
 
         ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
                 if (!current) return std::nullopt;
-                auto* existing = std::get_if<Storage::ListType>(&current->value);
+                auto* existing = std::get_if<Storage::ListType>(&current->GetValue());
                 if (!existing) throw WrongTypeError();
 
                 key_existed = true;

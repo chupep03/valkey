@@ -25,7 +25,7 @@ public:
         ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
                 Storage::ListType list = {};
                 if (current) {
-                    auto* existing = std::get_if<Storage::ListType>(&current->value);
+                    auto* existing = std::get_if<Storage::ListType>(&current->GetValue());
                     if (!existing) throw WrongTypeError();
                     list = *existing;
                 }

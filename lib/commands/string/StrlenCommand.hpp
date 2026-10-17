@@ -24,7 +24,7 @@ public:
             ctx.Out().Int(0);
             return;
         }
-        auto* s = std::get_if<Storage::StringType>(&entry->value);
+        auto* s = std::get_if<Storage::StringType>(&entry->GetValue());
         if (!s) throw WrongTypeError();
 
         ctx.Out().Int(static_cast<long long>(s->size()));

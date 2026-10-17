@@ -30,7 +30,7 @@ public:
             return;
         }
 
-        auto* existing = std::get_if<Storage::ListType>(&entry->value);
+        auto* existing = std::get_if<Storage::ListType>(&entry->GetValue());
         if (!existing) throw WrongTypeError();
 
         const auto n = static_cast<long long>(existing->size());

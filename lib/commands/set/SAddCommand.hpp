@@ -23,7 +23,7 @@ public:
         ctx.Storage().Do(key, [&](std::shared_ptr<const Storage::Entry> current) -> std::optional<Storage::Entry> {
             Storage::SetType set;
             if (current) {
-                auto* existing = std::get_if<Storage::SetType>(&current->value);
+                auto* existing = std::get_if<Storage::SetType>(&current->GetValue());
                 if (!existing) throw WrongTypeError();
                 set = *existing;
             }

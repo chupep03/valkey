@@ -25,7 +25,7 @@ public:
             ctx.Out().Array({});
             return;
         }
-        auto* first = std::get_if<Storage::SetType>(&first_entry->value);
+        auto* first = std::get_if<Storage::SetType>(&first_entry->GetValue());
         if (!first) throw WrongTypeError();
         Storage::SetType result = *first;
 
@@ -33,7 +33,7 @@ public:
             std::string key(ctx.GetArgumentAsStr(i));
             auto entry = ctx.Storage().Get(key);
             if (!entry) continue;
-            auto* existing = std::get_if<Storage::SetType>(&entry->value);
+            auto* existing = std::get_if<Storage::SetType>(&entry->GetValue());
             if (!existing) throw WrongTypeError();
 
             for (const auto& item : *existing) result.erase(item);

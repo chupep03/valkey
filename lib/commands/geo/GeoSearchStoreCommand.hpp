@@ -36,7 +36,7 @@ public:
                 std::array<Storage::KeyMutation, 2> result{};
                 result[0] = Storage::Skip{};
 
-                if (dst_entry && !std::get_if<Storage::SetType>(&dst_entry->value)) {
+                if (dst_entry && !std::get_if<Storage::SetType>(&dst_entry->GetValue())) {
                     throw WrongTypeError();
                 }
 
@@ -46,7 +46,7 @@ public:
                     return result;
                 }
 
-                auto* points = std::get_if<Storage::GeoType>(&src_entry->value);
+                auto* points = std::get_if<Storage::GeoType>(&src_entry->GetValue());
                 if (!points) throw WrongTypeError();
                 auto filtered = GeoHelpers::RunSearch(*points, q);
                 filtered_count = static_cast<long long>(filtered.size());

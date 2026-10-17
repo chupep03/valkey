@@ -28,7 +28,7 @@ public:
                     return std::nullopt;
                 }
 
-                auto* existing = std::get_if<Storage::SetType>(&current->value);
+                auto* existing = std::get_if<Storage::SetType>(&current->GetValue());
                 if (!existing) throw WrongTypeError();
                 Storage::SetType set = *existing;
 

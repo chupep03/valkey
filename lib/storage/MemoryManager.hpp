@@ -9,9 +9,9 @@
 
 namespace Storage {
 
-inline static constexpr size_t KB = 1024ULL;
-inline static constexpr size_t MB = 1024ULL * KB;
-inline static constexpr size_t GB = 1024ULL * MB;
+static constexpr size_t KB = 1024ULL;
+static constexpr size_t MB = 1024ULL * KB;
+static constexpr size_t GB = 1024ULL * MB;
 
 class MemoryManager {
 private:
@@ -46,7 +46,7 @@ public:
         if (str.empty()) throw ParseException("nothing to parse");
 
         size_t index = 0;
-        while (index < str.length() && std::isdigit(static_cast<u_char>(str[index]))) index++;
+        while (index < str.length() && std::isdigit(static_cast<unsigned char>(str[index]))) index++;
         std::string number_str = str.substr(0, index);
 
         std::string postfix = str.substr(index);
