@@ -31,7 +31,8 @@ public:
 
 
     void RegisterCommand(const std::string& name, std::unique_ptr<ICommand> cmd) {
-        commands_[ToUpper(name)] = std::move(cmd);
+        auto [it, inserted] = commands_.emplace(ToUpper(name), std::move(cmd));
+        if (!inserted) throw std::logic_error("duplicating command: " + name);
     }
 };
 
