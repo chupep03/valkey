@@ -54,7 +54,12 @@ public:
             c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
         if (number_str.empty()) throw ParseException("number expected");
-        size_t number = static_cast<size_t>(std::stoull(number_str));
+        size_t number = 0;
+        try {
+            number = static_cast<size_t>(std::stoull(number_str));
+        } catch (const std::exception& e) {
+            throw ParseException(std::string("bad number: ") + e.what());
+        }
 
         size_t multiplier = 1;
         if (postfix.empty() || postfix == "B")      multiplier = 1;
