@@ -33,7 +33,7 @@ public:
             return;
         }
 
-        auto* existing = std::get_if<Storage::ListType>(&entry->value);
+        auto* existing = std::get_if<Storage::ListType>(&entry->GetValue());
         if (!existing) throw WrongTypeError();
         auto norm = NormalizeIndex(index, existing->size());
         if (!norm) {

@@ -24,7 +24,7 @@ public:
 
         if (subcommand == "SET") {
             if (ctx.GetArgsCount() != 3) {
-                throw CommandException("wrong number of arguments for 'config|set' command");
+                throw CommandException("Wrong number of arguments for 'config|set' command");
             }
             if (param != "maxmemory") {
                 throw CommandException("Unknown option or number of arguments for CONFIG SET - '" + param + "'");
@@ -36,10 +36,10 @@ public:
             try {
                 bytes = Storage::MemoryManager::ParseSizeToBytes(value);
             } catch (const std::exception& e) {
-                throw CommandException(std::string("bad maxmemory value: ") + e.what());
+                throw CommandException(std::string("Bad maxmemory value: ") + e.what());
             }
             try {
-                ctx.Memory().SetLimit(bytes);
+                ctx.Storage().SetMaxMemory(bytes);
             } catch (const std::invalid_argument& e) {
                 throw CommandException(e.what());
             }
@@ -49,7 +49,7 @@ public:
 
         if (subcommand == "GET") {
             if (ctx.GetArgsCount() != 2) {
-                throw CommandException("wrong number of arguments for CONFIG GET command");
+                throw CommandException("Wrong number of arguments for CONFIG GET command");
             }
             if (param != "maxmemory") {
                 throw CommandException("Unknown option or number of arguments for CONFIG GET - '" + param + "'");
@@ -58,7 +58,7 @@ public:
             return;
         }
 
-        throw CommandException("unknown CONFIG subcommand or wrong number of arguments");
+        throw CommandException("Unknown CONFIG subcommand or wrong number of arguments");
     }
 
 private:

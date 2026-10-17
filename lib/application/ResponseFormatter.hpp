@@ -1,8 +1,11 @@
 #pragma once 
 
-#include "../commands/IResponse.hpp"
+#include "commands/IResponse.hpp"
 
 #include <iostream>
+#include <vector>
+#include <string>
+#include <cstddef>
 
 namespace Application {
     
@@ -18,7 +21,7 @@ public:
     void Ok() override {out_ << "OK\n";}                                                // OK
     void Nil() override {out_ << "(nil)\n";}                                            // NO RESPONSE
     void Int(long long n) override {out_ << "(integer) " << n << '\n';}                 // INT RESPONSE
-    void Bulk(const std::string& s) override {out_ << '"' << s << "\"\n";}              // STRING RESPONSE IN BULKS
+    void Bulk(const std::string& s) override {out_ << '"' << s << "\"\n";}              // STRING RESPONSE IN BULK
     void Error(const std::string& msg) override {err_ << "(error) " << msg << '\n';}    // ERROR RESPONSE
 
     void Array(const std::vector<std::string>& items) override {                        // ARRAY RESPONSE

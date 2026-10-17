@@ -24,11 +24,11 @@ Goal: a working single-threaded REPL, all commands implemented, basic tests.
 
 Goal: concurrent access to a single `StorageEngine` without races.
 
-- [ ] `std::shared_mutex` around `storage_` (readers vs writers)
-- [ ] `std::atomic<size_t>` for `actual_usage_` in `MemoryManager`
-- [ ] Atomic `Resize` (CAS loop or lock)
-- [ ] TSan-clean stress test (N threads, random commands)
-- [ ] Invariant check after stress: usage == Σ TotalSizeFor
+- [x] `std::shared_mutex`/ around `storage_`
+- [x] `std::atomic<size_t>` for `actual_usage_` in `MemoryManager`
+- [x] Atomic `Resize` (`std::unique_lock`)
+- [x] TSan-clean tests (including MT tests)
+- [x] Invariant check after stress: usage == Σ TotalSizeFor
 
 ## Stage 3 — Network frontend
 

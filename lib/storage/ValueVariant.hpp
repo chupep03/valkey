@@ -5,6 +5,7 @@
 #include <deque>
 #include <unordered_set>
 #include <variant>
+#include <cstddef>
 
 namespace Storage {
     struct GeoPoint {double longitude, latitude; std::string member; };

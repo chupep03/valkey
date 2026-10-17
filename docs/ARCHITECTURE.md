@@ -24,7 +24,7 @@ Dependencies go one way:
 
 ### `ValueVariant` (header `ValueVariant.hpp`)
 
-Not a class, but a set of type aliases that define what a value can be.
+Set of type aliases that define what a value can be.
 
 **Atomic Aliases:**
 
@@ -41,7 +41,7 @@ Not a class, but a set of type aliases that define what a value can be.
 This is the single source of info about which value types the database
 supports. Adding a new type is adding it here.
 
-**Responsibility:** define the types. No logic.
+**Responsibility:** define the types.
 
 **Not responsible for:** any operations on the values. Those live in
 commands and in `Entry`.
@@ -110,8 +110,7 @@ limit.
 **Not responsible for:**
 
 - Knowing what the memory is used for. No keys, no values.
-- Building error messages. It throws; the caller formats the text.
-- Being thread-safe yet. When we add multi-threading, `actual_usage_` becomes `std::atomic<size_t>` and `Resize` becomes one atomic step.
+- Without MT.
 
 ---
 
@@ -129,32 +128,39 @@ for TTL and memory.
 **Methods:**
 
 - `StorageEngine(MemoryManager& mm)` - constructor.
-- `Entry* Get(const std::string& key)` - looks up a key. Returns `nullptr` if not found or expired.
-- `void Set(const std::string& key, Entry&& entry)` - writes an entry. Recalculates memory and calls `mem_manager.Resize`. Throws an OOM.
+- `std::shared_ptr<const Entry> Get(const std::string& key)` - looks up a key. Returns `nullptr` if not found or expired.
+- `void Set(const std::string& key, Entry&& entry)` - writes an entry. Recalculates memory and calls `mem_manager.Resize`.
+- `bool Do(const std::string& key, F&& f)` - executing the lambda passed from the command.
+- `void DoMulti(F&& f, const Keys&... keys)` - executing the multikey lambda passed from command.
 - `int Remove(const std::vector<std::string>& keys)` - deletes keys, returns how many were removed.
 - `bool Exist(const std::string& key)` - checks existence of keys. Expired keys count as missing.
-- `std::vector<std::string> GetAllKeys(const std::string& pattern) const` - returns keys matching a glob pattern. Used by `KEYS`.
+- `std::vector<std::string> GetAllKeys(const std::string& pattern) const` - returns keys matching a glob pattern.
 - `void Flush()` - removes everything.
 - `size_t Size() const` - number of keys.
 - `size_t GetMemUsage(const std::string& key)` - size of one key-value.
 - `size_t TotalMemory() const` - total usage.
+- `size_t GetMaxMemory() const` - getter for memory limit.
+- `void SetMaxMemory(size_t bytes)` - setter for max memory.
+- `size_t RealTotal() const` - real total memory for invariant check.
 
 **Private helper:**
 
+- `ConstIterator FindLiveShared(const std::string& key) const` - finds key.
+- `Iterator FindLiveUnique(const std::string& key)` - finds or deletes key.
 - `check_ttl(key)` - looks at `exp_time`, removes the entry if expired,
   and updates `MemoryManager`.
 
 **Responsibility:**
 
 - Own the map. Nobody else touches `Storage` directly.
-- Apply TTL rules on every access.
+- Checks TTL rule on every access.
 - Keep `MemoryManager` in sync on every mutation.
 
 **Not responsible for:**
 
 - Parsing commands or arguments.
 - Formatting replies.
-- Knowing the type of a value. Contains `Entry` values.
+- Knowing the type of a value. Contains `Entry`.
 
 ---
 
@@ -216,17 +222,21 @@ The command registry. A map command names - command objects.
 
 **Methods:**
 
-- `void Register(const std::string& name, std::unique_ptr<ICommand> cmd)` - adds a command. The name is upper-cased first.
-- `ICommand* Find(const std::string& name) const` - returns the command or `nullptr`.
-- `void RegisterAll()` - one place where all commands are created and registered Called once at launch.
+- `void RegisterCommand(const std::string& name, std::unique_ptr<ICommand> cmd)` - adds a command. The name is upper-cased first.
+- `ICommand* FindCommand(const std::string& name) const` - returns the command or `nullptr`.
 
-**Responsibility:** know which command exists.
+**Responsibility:** holds commads list (umap).
 
 **Not responsible for:**
 
 - Running commands.
 - Parsing input.
-- Knowing about `StorageEngine`.
+
+---
+
+### `RegisterAll fuction` (header `RegisterAll.hpp`)
+
+- `void RegisterAll()` - one place where all commands are created and registered, called once at launch.
 
 ---
 
@@ -258,11 +268,11 @@ Splits one input line into tokens.
 
 ---
 
-### `IResponse` / `ResponseFormatter` (header `ResponseFormatter.hpp`, planned)
+### `IResponse` / `ResponseFormatter` (header `ResponseFormatter.hpp`)
 
 A single place for all output formatting.
 
-**Interface (draft):**
+**Interface:**
 
 - `void Ok()` - prints `OK`.
 - `void Nil()` - prints `(nil)` for `no answer`.
@@ -286,11 +296,11 @@ A single place for all output formatting.
 **`SET key value`**
 
 1. `Application` reads a line.
-2. `Tokenizer` returns `{"SET", "key", "value"}`.
-3. `CommandReg::Find("SET")` returns a `SetCommand*`.
+2. `Tokenizer` returns `{"command", "key", "value"}`.
+3. `CommandReg::Find("command")` returns a `SomeCommand*`.
 4. `Application` builds a `Context` with args `{"key", "value"}` and runs
-   `SetCommand::Execute(ctx)`.
-5. The command builds a new `Entry` with a `StringType` value.
+   `SOmeCommand::Execute(ctx)`.
+5. The command builds a lambda and bring it to `Do`/`DoMulty` method.
 6. `StorageEngine::Set` asks `MemoryManager::Resize` if it fits.
 7. On success, `ctx.out.Ok()` writes `OK` to stdout.
 8. On failure, `MemoryManager` throws and `main` prints the OOM error to stderr.
@@ -303,8 +313,8 @@ A single place for all output formatting.
 **OOM**
 
 1. `MemoryManager::Resize` throws.
-2. `StorageEngine::Set` lets the exception through (or re-wraps it).
-3. `main` catches it and writes
+2. `StorageEngine::Set` lets the exception through.
+3. `Repl` catches it and writes
    `(error) OOM command not allowed when used memory > 'maxmemory'`
    to stderr.
 
@@ -317,6 +327,6 @@ A single place for all output formatting.
 3. **Commands have no state.** The same `SetCommand` object may serve many calls, possibly from different threads later
 4. **`Context` is per call.** It is created inside `main` for each line and destroyed after.
 5. **`Entry` is a value.** Do not store pointers to it.
-6. **All mutations go through `StorageEngine`.** No code outside `StorageEngine` touches the map.
+6. **All mutations go through `StorageEngine`.** No code outside `StorageEngine` touches the map. Access to `MemoryManger` happends under mutex from `StorageEngine`. 
 7. **All memory accounting goes through `MemoryManager`.** No code outside updates `actual_usage_`.
-8. **All output goes through the formatter.** No `std::cout` in commands, only `IRespoтse` interface.
+8. **All output goes through the formatter.** No `std::cout` in commands, only `IResponse` interface.
