@@ -23,7 +23,7 @@ public:
             return;
         }
 
-        auto* existing = std::get_if<Storage::SetType>(&entry->value);
+        auto* existing = std::get_if<Storage::SetType>(&entry->GetValue());
         if (!existing) throw WrongTypeError();
         ctx.Out().Int(static_cast<long long>(existing->size()));
     }

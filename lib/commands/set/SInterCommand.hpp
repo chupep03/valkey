@@ -28,7 +28,7 @@ public:
                 ctx.Out().Array({});
                 return;
             }
-            auto* existing = std::get_if<Storage::SetType>(&entry->value);
+            auto* existing = std::get_if<Storage::SetType>(&entry->GetValue());
             if (!existing) throw WrongTypeError{};
             sets.push_back(existing);
         }

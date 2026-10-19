@@ -14,8 +14,11 @@ public:
         std::string key(ctx.GetArgumentAsStr(0));
         std::string value(ctx.GetArgumentAsStr(1));
 
-        Storage::Entry entry{Storage::StringType{std::move(value)}};
-        ctx.Storage().Set(key, std::move(entry));
+        ctx.Storage().Do(key,
+            [&](std::shared_ptr<const Storage::Entry>) -> std::optional<Storage::Entry> {
+                return Storage::Entry{Storage::StringType{std::move(value)}};
+            });
+
         ctx.Out().Ok();
     }
 };

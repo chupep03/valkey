@@ -30,7 +30,7 @@ public:
             [](const Storage::ListType&)   { return std::string("list");   },
             [](const Storage::SetType&)    { return std::string("set");    },
             [](const Storage::GeoType&)    { return std::string("zset");   }
-        }, entry->value);
+        }, entry->GetValue());
 
         ctx.Out().Bulk(type);
     }

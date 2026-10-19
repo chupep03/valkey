@@ -23,13 +23,13 @@ public:
             return;
         }
 
-        if (!entry->exp_time.has_value()) {
+        if (!entry->GetExpTime().has_value()) {
             ctx.Out().Int(-1);
             return;
         }
 
         auto now = std::chrono::system_clock::now();
-        auto remaining = std::chrono::duration_cast<std::chrono::seconds>(entry->exp_time.value() - now).count();
+        auto remaining = std::chrono::duration_cast<std::chrono::seconds>(entry->GetExpTime().value() - now).count();
         if (remaining < 0){
             remaining = 0;
         } 

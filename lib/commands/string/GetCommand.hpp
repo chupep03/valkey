@@ -19,7 +19,7 @@ public:
             ctx.Out().Nil();
             return;
         }
-        auto* s = std::get_if<Storage::StringType>(&entry->value);
+        auto* s = std::get_if<Storage::StringType>(&entry->GetValue());
         if (!s) throw WrongTypeError();
 
         ctx.Out().Bulk(*s);

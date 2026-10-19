@@ -24,7 +24,7 @@ public:
             ctx.Out().Int(0);
             return;
         }
-        auto* existing = std::get_if<Storage::SetType>(&entry->value);
+        auto* existing = std::get_if<Storage::SetType>(&entry->GetValue());
         int count = 0;
         if (existing->count(member)) count = 1;
         ctx.Out().Int(count);

@@ -31,7 +31,7 @@ public:
 
         auto entry = ctx.Storage().Get(key);
         if (!entry) { ctx.Out().Nil(); return;}
-        auto* points = std::get_if<Storage::GeoType>(&entry->value);
+        auto* points = std::get_if<Storage::GeoType>(&entry->GetValue());
         if (!points) throw WrongTypeError();
 
         const Storage::GeoPoint* p1 = nullptr;

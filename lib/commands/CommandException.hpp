@@ -5,39 +5,34 @@
 
 namespace Commands {
 
-//struct ArgsError {};
-//struct WrongTypeError {};
-//struct IndexError {};
-//struct SyntaxError {};
-
 class CommandException : public std::runtime_error {
 public:
-    explicit CommandException(const std::string& msg = "no details") 
-        : std::runtime_error("CommandException: " + msg) {}
+    explicit CommandException(const std::string& msg = "no details")
+        : std::runtime_error(msg) {}
 };
 
-class ArgsError : public std::runtime_error {
-public:     
+class ArgsError : public CommandException {
+public:
     explicit ArgsError(const std::string& msg = "no details")
-        : std::runtime_error("ArgsError: " + msg) {}
+        : CommandException("ArgsError: " + msg) {}
 };
 
-class WrongTypeError : public std::runtime_error {
-public:     
+class WrongTypeError : public CommandException {
+public:
     explicit WrongTypeError(const std::string& msg = "no details")
-        : std::runtime_error("WrongTypeError: " + msg) {}
+        : CommandException("WrongTypeError: " + msg) {}
 };
 
-class IndexError : public std::runtime_error {
+class IndexError : public CommandException {
 public:
     explicit IndexError(const std::string& msg = "no details")
-        : std::runtime_error("IndexError: " + msg) {}
+        : CommandException("IndexError: " + msg) {}
 };
 
-class SyntaxError : public std::runtime_error {
+class SyntaxError : public CommandException {
 public:
     explicit SyntaxError(const std::string& msg = "no details")
-        : std::runtime_error("SyntaxError: " + msg) {}
+        : CommandException("SyntaxError: " + msg) {}
 };
 
 } // namespace Commands

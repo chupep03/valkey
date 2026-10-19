@@ -28,10 +28,13 @@ public:
             ctx.Out().Array({});
             return;
         }
-        auto* points = std::get_if<Storage::GeoType>(&entry->value);
+        auto* points = std::get_if<Storage::GeoType>(&entry->GetValue());
         if (!points) throw WrongTypeError();
 
-        std::vector<std::string> out = GeoHelpers::RunSearch(*points, q);
+        std::vector<std::string> out;
+        for (auto& m : GeoHelpers::RunSearch(*points, q)){
+            out.push_back(m->member);
+        }
         ctx.Out().Array(out);
     }
 };

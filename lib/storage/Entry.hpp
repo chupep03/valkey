@@ -1,32 +1,37 @@
 #pragma once
+
 #include "ValueVariant.hpp"
 #include "Overloaded.hpp"
+
 #include <optional>
 #include <chrono>
+#include <cstddef>
 
 namespace Storage {
 using t_point = std::chrono::system_clock::time_point;
 
 class Entry {
 private:
-    size_t memory_usage = 0;
+    size_t memory_usage_ = 0;
+    ValueVariant value_; // immutable
+    std::optional<t_point> exp_time_;
 
-public:
-    ValueVariant value; // immutable
-    std::optional<t_point> exp_time;
-    
+public:    
     Entry() = default;
 
+    const ValueVariant& GetValue() const { return value_; }
+    const std::optional<t_point>& GetExpTime() const { return exp_time_; }
+
     explicit Entry(ValueVariant val, std::optional<t_point> expire = std::nullopt)
-        : value(std::move(val)), exp_time(expire) {
-        memory_usage = CalculateSelfSize();
+        : value_(std::move(val)), exp_time_(expire) {
+        memory_usage_ = CalculateSelfSize();
     }
 
-    size_t GetMemoryUsage() const {return memory_usage;}
+    size_t GetMemoryUsage() const {return memory_usage_;}
 
     bool IsExpired() const {
-        if (!exp_time.has_value()) return false;
-        return std::chrono::system_clock::now() >= exp_time.value();
+        if (!exp_time_.has_value()) return false;
+        return std::chrono::system_clock::now() >= exp_time_.value();
     }
 
     size_t CalculateSelfSize() const {
@@ -39,13 +44,13 @@ public:
             for (const auto& g : geo) size += g.member.capacity();
         };
 
-        std::visit(Overloaded{StrAdd, SetAdd, ListAdd, GeoAdd}, value);
+        std::visit(Overloaded{StrAdd, SetAdd, ListAdd, GeoAdd}, value_);
 
         return size;
     }
 
     Entry WithValue(ValueVariant new_value) const {
-        return Entry{std::move(new_value), exp_time};
+        return Entry{std::move(new_value), exp_time_};
     }
 };
 }

@@ -42,6 +42,8 @@ if(VALKEY_BUILD_TESTS)
         tests/test_generic_coms.cpp
         tests/test_geo_coms.cpp
         tests/fake_response.hpp
+        
+        tests/test_bench_mt.cpp
     )
     target_link_libraries(valkey_tests
         PRIVATE valkey_core GTest::gtest_main)
@@ -49,4 +51,11 @@ if(VALKEY_BUILD_TESTS)
 
     include(GoogleTest)
     gtest_discover_tests(valkey_tests)
+
+    option(VALKEY_TSAN "Build with ThreadSanitizer" OFF)
+    if(VALKEY_TSAN)
+        target_compile_options(valkey_tests PRIVATE -fsanitize=thread -g -O1)
+        target_link_options(valkey_tests PRIVATE -fsanitize=thread)
+        endif()
+
 endif()
