@@ -44,7 +44,7 @@ Goal: TCP server with a RESP protocol.
 
 - [ ] CMake: build tests, wire CTest
 - [ ] CI (GitHub Actions): build + tests + TSan
-- [ ] Dockerfile (multi-stage)
+- [x] Dockerfile (multi-stage)
 - [ ] Benchmark (100k SET/GET)
 - [ ] Screenshot in README
-- [ ] `LICENSE`, `.gitignore`
+- [x] `LICENSE`, `.gitignore`
