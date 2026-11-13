@@ -19,6 +19,11 @@ In-memory **key-value** store, with a subset of the [Valkey](https://valkey.io/)
 - `C++23` compiler
 - `CMake 3.20+`
 
+## Docker
+
+    docker build -t valkey-lite .
+    docker run -it --rm valkey-lite
+
 ## Build
 
     cmake -B build -DCMAKE_BUILD_TYPE=Release
